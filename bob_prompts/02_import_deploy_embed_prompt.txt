@@ -1,6 +1,6 @@
 Import, Deploy & Embed Prompt — watsonx Orchestrate HR Agent Suite (oic_dev)
 
-Import the three pre-built Native Agent YAML files into the watsonx Orchestrate
+Import the RBAC plugin and three pre-built Native Agent YAML files into the watsonx Orchestrate
 SaaS environment named oic_dev, deploy the main orchestrator agent, and configure
 the embed chat web application.
 
@@ -11,26 +11,31 @@ Environment facts:
   - Active env  : oic_dev  (already configured; no env switch needed)
   - Instance URL: https://api.ca-tor.watson-orchestrate.cloud.ibm.com/...
 
-Agent YAML files (all located in wxo-agents-tools/agents/):
-  1. general_agent.yaml   — sub-agent (tools only, no collaborators)
-  2. manager_agent.yaml   — sub-agent (tools + rbac_plugin pre-invoke)
-  3. hr_main_agent.yaml   — orchestrator agent (collaborators: general_agent, manager_agent)
+Tools & Agent YAML files:
+  - Tool/Plugin : wxo-agents-tools/tools/rbac_plugin.py  — Python RBAC pre-invoke tool
+  - Agent 1     : wxo-agents-tools/agents/general_agent.yaml   — sub-agent (tools only)
+  - Agent 2     : wxo-agents-tools/agents/manager_agent.yaml   — sub-agent (tools + rbac_plugin)
+  - Agent 3     : wxo-agents-tools/agents/hr_main_agent.yaml   — orchestrator agent (collaborators: general_agent, manager_agent)
 
-MANDATORY import order — sub-agents MUST be imported before the orchestrator:
+MANDATORY import order — Plugin first, then sub-agents, and finally the orchestrator:
 
   Step 1: source venv/bin/activate && \
-          orchestrate agents import -f wxo-agents-tools/agents/general_agent.yaml
+          orchestrate tools import -f wxo-agents-tools/tools/rbac_plugin.py -k python
 
   Step 2: source venv/bin/activate && \
-          orchestrate agents import -f wxo-agents-tools/agents/manager_agent.yaml
+          orchestrate agents import -f wxo-agents-tools/agents/general_agent.yaml
 
   Step 3: source venv/bin/activate && \
+          orchestrate agents import -f wxo-agents-tools/agents/manager_agent.yaml
+
+  Step 4: source venv/bin/activate && \
           orchestrate agents import -f wxo-agents-tools/agents/hr_main_agent.yaml
 
 Why this order matters:
-  hr_main_agent declares general_agent and manager_agent as collaborators.
-  If the sub-agents do not exist in the platform first, the orchestrator import
-  will fail to resolve its collaborator references.
+  1. manager_agent references rbac_plugin as a pre-invocation plugin. If the tool is not
+     registered first, the manager_agent import will fail.
+  2. hr_main_agent declares general_agent and manager_agent as collaborators. If the
+     sub-agents do not exist first, the orchestrator import will fail to resolve references.
 
 Post-import verification:
   Run the following command and confirm all three agents appear in the table:
