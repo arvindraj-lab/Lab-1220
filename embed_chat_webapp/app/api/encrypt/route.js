@@ -1,5 +1,5 @@
 import NodeRSA from "node-rsa";
-import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { Buffer } from "buffer";
 import fs from "fs";
 import path from "path";
@@ -51,10 +51,10 @@ export async function POST(request) {
     }
 
     // -------------------------------------------------------------
-    // Decode access token to retrieve standard claims
+    // Decode access token to retrieve subject
     // -------------------------------------------------------------
-    function decodeAccessToken(jwt) {
-      const parts = jwt.split(".");
+    function decodeAccessToken(jwtStr) {
+      const parts = jwtStr.split(".");
       if (parts.length !== 3) throw new Error("Invalid JWT format");
 
       return JSON.parse(
@@ -62,57 +62,61 @@ export async function POST(request) {
       );
     }
 
-    const decoded = decodeAccessToken(accessToken);
+    let decoded = {};
+    try {
+      decoded = decodeAccessToken(accessToken);
+    } catch {
+      // Fallback if not standard JWT format
+    }
 
     // -------------------------------------------------------------
-    // Build user_profile under context (including is_manager)
+    // Build context object
     // -------------------------------------------------------------
     const isManager = userInfo.is_manager === true;
     const context = {
       user_profile: {
         name: userInfo.name || (isManager ? "Manager" : "General"),
-        email: userInfo.email || decoded.sub,
+        email: userInfo.email || decoded.sub || "user@company.com",
         is_manager: isManager,
       },
     };
 
     // -------------------------------------------------------------
-    // Encrypt user_payload (containing sso_token) with IBM Public Key
+    // Construct jwtContent matching jwt_server.js
+    // Order: sub -> exp -> user_payload -> context -> iat
     // -------------------------------------------------------------
-    const user_payload = { sso_token: accessToken };
-    const rsaKey = new NodeRSA(ibmPublicKey);
-    const encryptedUserPayload = rsaKey.encrypt(
-      Buffer.from(JSON.stringify(user_payload)),
+    const subject = decoded.sub || userInfo.email || "user@company.com";
+    const jwtContent = {
+      sub: subject,
+      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour (3600 seconds)
+    };
+
+    const userPayload = { sso_token: accessToken };
+    jwtContent.user_payload = userPayload;
+    jwtContent.context = context;
+
+    // -------------------------------------------------------------
+    // Encrypt user_payload with IBM Public Key (RSA-OAEP / pkcs1_oaep)
+    // Identical to jwt_server.js
+    // -------------------------------------------------------------
+    const ibmKeyBuffer = Buffer.from(ibmPublicKey, "utf-8");
+    const plaintext = JSON.stringify(jwtContent.user_payload);
+    const rsaKey = new NodeRSA(ibmKeyBuffer);
+    rsaKey.setOptions({ encryptionScheme: "pkcs1_oaep" });
+    jwtContent.user_payload = rsaKey.encrypt(
+      Buffer.from(plaintext, "utf-8"),
       "base64"
     );
 
     // -------------------------------------------------------------
-    // Build outer JWT payload
+    // Sign outer JWT with Client Private Key (RS256) via jsonwebtoken
+    // Identical to jwt_server.js
     // -------------------------------------------------------------
-    const now = Math.floor(Date.now() / 1000);
-    const jwtContent = {
-      sub: decoded.sub || userInfo.email,
-      iat: decoded.iat || now,
-      exp: decoded.exp || now + 3600,
-      user_payload: encryptedUserPayload,
-      context,
-    };
-
-    // -------------------------------------------------------------
-    // Sign outer JWT with Client Private Key (RS256)
-    // -------------------------------------------------------------
-    const header = { alg: "RS256", typ: "JWT" };
-    const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
-    const encodedPayload = Buffer.from(JSON.stringify(jwtContent)).toString("base64url");
-    const signingInput = `${encodedHeader}.${encodedPayload}`;
-
-    const signature = crypto
-      .sign("RSA-SHA256", Buffer.from(signingInput), {
-        key: clientPrivateKey,
-      })
-      .toString("base64url");
-
-    const finalJWT = `${signingInput}.${signature}`;
+    const privateKeyBuffer = Buffer.from(clientPrivateKey, "utf-8");
+    const finalJWT = jwt.sign(jwtContent, privateKeyBuffer, {
+      algorithm: "RS256",
+      allowInsecureKeySizes: true,
+    });
 
     return new Response(JSON.stringify({ token: finalJWT, context }), {
       status: 200,
