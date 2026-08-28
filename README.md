@@ -18,12 +18,15 @@ An enterprise-grade, secure, multi-agent HR assistant solution built on **watson
 
 ### 1. Environment Setup
 
-Open terminal in the project root (`TechXchange-student`):
+Open terminal in the project root (`Lab-1220`):
 
 ```bash
 python3.11 -m venv venv
 source venv/bin/activate
 pip3 install ibm-watsonx-orchestrate==2.15.0
+
+orchestrate env add --name oic_dev --url <SERVICE_INSTANCE_URL>
+orchestrate env activate oic_dev --api-key <IAM_API_KEY>
 ```
 
 ---
