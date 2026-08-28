@@ -1,0 +1,81 @@
+Production Prompt — watsonx Orchestrate Native HR Agent Architecture
+
+Generate exactly three production-ready watsonx Orchestrate Native Agent YAML files using the latest supported Native Agent schema and production best practices.
+
+Deliverables:
+
+1. wxo-agents-tools/agents/general_agent.yaml
+2. wxo-agents-tools/agents/manager_agent.yaml
+3. wxo-agents-tools/agents/hr_main_agent.yaml
+
+Output constraints:
+
+* Return YAML only.
+* Do not include Markdown fences.
+* Do not include explanations or commentary.
+* Do not generate additional files.
+* Ensure all YAML is syntactically valid and internally consistent.
+* All three agents MUST use exactly this LLM:
+  llm: groq/openai/gpt-oss-120b
+
+Architecture:
+User
+│
+▼
+hr_main_agent
+├── general_agent
+└── manager_agent
+
+hr_main_agent is the only user-facing agent.
+
+hr_main_agent:
+
+* Route requests related to office locations, leave balance, or company holidays to general_agent.
+* Route requests involving employee salary or Team summary dashboard to manager_agent.
+* Do not answer these requests directly; only route them to the relevant sub-agent.
+* If manager_agent is unavailable, respond exactly:
+  You don't have access to view this information
+* Use:
+  llm: groq/openai/gpt-oss-120b
+
+general_agent:
+Responsibility:
+
+* Office locations
+* Employee leave balance
+* Company holidays
+
+Allowed tools:
+
+* mcp_tools_server:get_office_locations
+* mcp_tools_server:get_leave_balance
+* mcp_tools_server:get_holidays
+
+LLM:
+
+* llm: groq/openai/gpt-oss-120b
+
+manager_agent:
+Responsibility:
+
+* Employee salary
+* Team summary dashboard
+
+Allowed tools:
+
+* mcp_tools_server:get_employee_salary
+* mcp_tools_server:get_team_summary_dashboard
+
+LLM:
+
+* llm: groq/openai/gpt-oss-120b
+
+Required plugin:
+Configure rbac_plugin as a pre-invocation plugin for manager_agent only:
+
+
+plugins:
+  agent_pre_invoke:
+    - plugin_name: rbac_plugin
+
+The rbac_plugin must execute before manager_agent tool or agent invocation to enforce role-based access control. Do not configure any other plugins.

@@ -1,0 +1,31 @@
+# Node / JavaScript
+node_modules/
+.next/
+dist/
+build/
+out/
+.npm/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Environment variables & secrets
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*_private_key.pem
+*.key
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log

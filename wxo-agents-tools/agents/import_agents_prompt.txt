@@ -1,0 +1,52 @@
+Import Prompt — watsonx Orchestrate HR Agent Suite (oic_dev)
+
+Import the three pre-built Native Agent YAML files into the watsonx Orchestrate
+SaaS environment named oic_dev.
+
+Environment facts:
+  - CLI binary  : /home/itzuser/TechXchange/venv/bin/orchestrate
+    (always activate the venv before running any orchestrate command)
+    Source command: source /home/itzuser/TechXchange/venv/bin/activate
+  - Active env  : oic_dev  (already configured; no env switch needed)
+  - Instance URL: https://api.ca-tor.watson-orchestrate.cloud.ibm.com/...
+
+Agent YAML files (all located in wxo-agents-tools/agents/):
+  1. general_agent.yaml   — sub-agent (tools only, no collaborators)
+  2. manager_agent.yaml   — sub-agent (tools + rbac_plugin pre-invoke)
+  3. hr_main_agent.yaml   — orchestrator agent (collaborators: general_agent, manager_agent)
+
+MANDATORY import order — sub-agents MUST be imported before the orchestrator:
+
+  Step 1: source /home/itzuser/TechXchange/venv/bin/activate && \
+          orchestrate agents import -f wxo-agents-tools/agents/general_agent.yaml
+
+  Step 2: source /home/itzuser/TechXchange/venv/bin/activate && \
+          orchestrate agents import -f wxo-agents-tools/agents/manager_agent.yaml
+
+  Step 3: source /home/itzuser/TechXchange/venv/bin/activate && \
+          orchestrate agents import -f wxo-agents-tools/agents/hr_main_agent.yaml
+
+Why this order matters:
+  hr_main_agent declares general_agent and manager_agent as collaborators.
+  If the sub-agents do not exist in the platform first, the orchestrator import
+  will fail to resolve its collaborator references.
+
+Post-import verification:
+  Run the following command and confirm all three agents appear in the table:
+
+  source /home/itzuser/TechXchange/venv/bin/activate && \
+  orchestrate agents list
+
+  Expected agents in the output:
+    - general_agent   (tools: mcp_tools_server:get_office_locations, get_leave_balance, get_holidays)
+    - manager_agent   (tools: mcp_tools_server:get_employee_salary, get_team_summary_dashboard; plugins: rbac_plugin)
+    - hr_main_agent   (collaborators: general_agent, manager_agent)
+
+Notes:
+  - Do NOT import external agents or assistant agents for this suite.
+  - Do NOT alter the YAML files before importing unless explicitly asked.
+  - Do NOT switch the active environment; oic_dev is correct.
+  - If any import step fails, report the exact error before proceeding to the next step.
+  - If the agents already exist and need to be re-imported, use:
+    orchestrate agents delete -n <agent_name> -k native
+    then re-run the import step for that agent.

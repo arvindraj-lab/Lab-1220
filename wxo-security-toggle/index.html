@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WXO Security Toggle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --primary: #0f62fe;
+            --primary-hover: #0353e9;
+            --primary-glow: rgba(15, 98, 254, 0.4);
+            --success: #24a148;
+            --success-glow: rgba(36, 161, 72, 0.4);
+            --danger: #da1e28;
+            --danger-hover: #b81921;
+            --danger-glow: rgba(218, 30, 40, 0.4);
+            --warning: #f1c21b;
+            --text-main: #f4f4f4;
+            --text-muted: #94a3b8;
+            --font-main: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(15, 98, 254, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(36, 161, 72, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Header Styling */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem 2rem;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0f62fe, #8a3ffc);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .brand-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .brand-text p {
+            font-size: 0.825rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Card Panel */
+        .card {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 0.75rem;
+        }
+
+        /* Platform Selection Radio Group */
+        .platform-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .platform-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .platform-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .platform-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0.85rem 1rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .platform-option input[type="radio"]:checked + .platform-label {
+            background: rgba(15, 98, 254, 0.15);
+            border-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        /* Form Controls */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            color: #ffffff;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        /* Security Status Badge Banner */
+        .status-banner {
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--panel-border);
+            transition: all 0.3s ease;
+        }
+
+        .status-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #6e6e6e;
+            box-shadow: 0 0 8px rgba(110, 110, 110, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .status-banner.unknown .status-dot {
+            background: #6e6e6e;
+            box-shadow: 0 0 8px rgba(110, 110, 110, 0.5);
+        }
+
+        .status-banner.enabled {
+            border-color: rgba(36, 161, 72, 0.4);
+            background: rgba(36, 161, 72, 0.08);
+        }
+
+        .status-banner.enabled .status-dot {
+            background: var(--success);
+            box-shadow: 0 0 12px var(--success-glow);
+            animation: pulse-green 2s infinite;
+        }
+
+        .status-banner.disabled {
+            border-color: rgba(218, 30, 40, 0.4);
+            background: rgba(218, 30, 40, 0.08);
+        }
+
+        .status-banner.disabled .status-dot {
+            background: var(--danger);
+            box-shadow: 0 0 12px var(--danger-glow);
+        }
+
+        .status-text-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .status-text-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.8; }
+        }
+
+        /* Action Buttons Layout */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0.9rem 1.25rem;
+            border-radius: 10px;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .btn-status {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            border: 1px solid var(--panel-border);
+        }
+
+        .btn-status:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-enable {
+            background: var(--success);
+            color: #ffffff;
+            box-shadow: 0 4px 14px var(--success-glow);
+        }
+
+        .btn-enable:hover {
+            background: #1f8a3e;
+            transform: translateY(-1px);
+        }
+
+        .btn-disable {
+            background: var(--danger);
+            color: #ffffff;
+            box-shadow: 0 4px 14px var(--danger-glow);
+        }
+
+        .btn-disable:hover {
+            background: var(--danger-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Activity Console Log */
+        .console-panel {
+            background: #090d16;
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.825rem;
+            max-height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 10px;
+            line-height: 1.4;
+        }
+
+        .log-time {
+            color: #475569;
+            flex-shrink: 0;
+        }
+
+        .log-msg { color: #cbd5e1; }
+        .log-msg.info { color: #38bdf8; }
+        .log-msg.success { color: #4ade80; }
+        .log-msg.error { color: #f87171; }
+
+        /* Modal Popup */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: #1e293b;
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.15rem;
+            color: #ffffff;
+        }
+
+        .modal-body p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            background: #1e293b;
+            border-left: 4px solid var(--primary);
+            color: #ffffff;
+            font-size: 0.875rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideInRight 0.3s ease;
+        }
+
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 6c1.4 0 2.5 1.1 2.5 2.5 0 .9-.5 1.7-1.2 2.1l2 3.4h-1.6l-1.4-2.4H11.7v2.4H10.3V7h1.7z"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>WXO Security Toggle</h1>
+                    <p>watsonx Orchestrate Embedded Security Controller</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Card -->
+        <div class="card">
+            <!-- Platform & Credentials -->
+            <div class="section-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                Target Environment Credentials
+            </div>
+
+            <div class="platform-group">
+                <div class="platform-option">
+                    <input type="radio" id="platformSaas" name="deploymentPlatform" value="saas" checked onchange="saveCredentials()">
+                    <label for="platformSaas" class="platform-label">
+                        <span>IBM Cloud SaaS</span>
+                    </label>
+                </div>
+                <div class="platform-option">
+                    <input type="radio" id="platformAws" name="deploymentPlatform" value="aws" onchange="saveCredentials()">
+                    <label for="platformAws" class="platform-label">
+                        <span>AWS Deployment</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="apiKeyInput" id="apiKeyLabel">IBM Cloud API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="Enter API Key" oninput="saveCredentials()">
+                </div>
+                <div class="form-group">
+                    <label for="instanceUrlInput">WXO Service Instance URL</label>
+                    <input type="text" id="instanceUrlInput" placeholder="https://api.us-south.orchestrate.ai.ibm.com/instances/..." oninput="saveCredentials()">
+                </div>
+            </div>
+
+            <!-- Security State Banner -->
+            <div class="section-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                </svg>
+                Current Security State
+            </div>
+
+            <div class="status-banner unknown" id="statusBanner">
+                <div class="status-info">
+                    <div class="status-dot"></div>
+                    <div>
+                        <div class="status-text-title">Status</div>
+                        <div class="status-text-value" id="statusText">UNKNOWN</div>
+                    </div>
+                </div>
+                <button class="btn btn-status" id="btnCheckStatus" onclick="checkSecurityStatus()">
+                    <span>Check Status</span>
+                </button>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-grid">
+                <button class="btn btn-status" onclick="checkSecurityStatus()">
+                    <span>Re-Check Status</span>
+                </button>
+                <button class="btn btn-enable" id="btnEnable" onclick="openEnableModal()">
+                    <span>Enable Security</span>
+                </button>
+                <button class="btn btn-disable" id="btnDisable" onclick="openDisableModal()">
+                    <span>Disable Security</span>
+                </button>
+            </div>
+
+            <!-- Console Log -->
+            <div class="section-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/>
+                </svg>
+                Activity Log
+            </div>
+            <div class="console-panel" id="consoleLog">
+                <div class="log-entry">
+                    <span class="log-time">[Ready]</span>
+                    <span class="log-msg info">Enter your credentials and click 'Check Status', 'Enable Security', or 'Disable Security'.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Enable Modal -->
+    <div class="modal-overlay" id="enableModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Enable WXO Security</h3>
+            </div>
+            <div class="modal-body">
+                <p>This operation will auto-generate an RSA-4096 Key Pair, register the client & IBM public keys with your watsonx Orchestrate instance, and activate <strong>Security Enforcement</strong>.</p>
+                <br>
+                <p>Anonymous embed chat access will be blocked until a valid signed JWT is provided.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-status" onclick="closeModal('enableModal')">Cancel</button>
+                <button class="btn btn-enable" onclick="executeEnableSecurity()">Confirm & Enable</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Disable Modal -->
+    <div class="modal-overlay" id="disableModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Disable WXO Security</h3>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to <strong>DISABLE SECURITY</strong> for this watsonx Orchestrate instance?</p>
+                <br>
+                <p style="color: #f87171;">Warning: Anyone with your agent snippet will be able to access the chat anonymously without authentication.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-status" onclick="closeModal('disableModal')">Cancel</button>
+                <button class="btn btn-disable" onclick="executeDisableSecurity()">Confirm & Disable</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const PROXY_SERVER = 'http://localhost:3002/api/proxy';
+
+        // ── Helper: Local Storage & Credential Sync ──
+        function saveCredentials() {
+            const platform = document.querySelector('input[name="deploymentPlatform"]:checked').value;
+            const apiKey = document.getElementById('apiKeyInput').value;
+            const instanceUrl = document.getElementById('instanceUrlInput').value;
+
+            document.getElementById('apiKeyLabel').textContent = platform === 'aws' ? 'watsonx Orchestrate API Key' : 'IBM Cloud API Key';
+
+            localStorage.setItem('wxo_toggle_credentials', JSON.stringify({ platform, apiKey, instanceUrl }));
+        }
+
+        function loadCredentials() {
+            const saved = localStorage.getItem('wxo_toggle_credentials');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.platform) {
+                        const radio = document.querySelector(`input[name="deploymentPlatform"][value="${data.platform}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                    if (data.apiKey) document.getElementById('apiKeyInput').value = data.apiKey;
+                    if (data.instanceUrl) document.getElementById('instanceUrlInput').value = data.instanceUrl;
+                    document.getElementById('apiKeyLabel').textContent = data.platform === 'aws' ? 'watsonx Orchestrate API Key' : 'IBM Cloud API Key';
+                } catch(e){}
+            }
+        }
+
+        // ── Helper: Logging & UI Feedback ──
+        function log(message, type = 'normal') {
+            const consoleEl = document.getElementById('consoleLog');
+            const now = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${now}]</span><span class="log-msg ${type}">${escapeHTML(message)}</span>`;
+            consoleEl.appendChild(entry);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        function updateBanner(state) {
+            const banner = document.getElementById('statusBanner');
+            const text = document.getElementById('statusText');
+            banner.className = `status-banner ${state}`;
+            if (state === 'enabled') {
+                text.textContent = 'SECURITY ENABLED';
+            } else if (state === 'disabled') {
+                text.textContent = 'SECURITY DISABLED';
+            } else {
+                text.textContent = 'UNKNOWN';
+            }
+        }
+
+        // ── Helper: API & Instance Parsing ──
+        function parseInstanceUrl(rawUrl) {
+            let url = rawUrl.trim();
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            const match = url.match(/^(https?:\/\/[^\/]+).*?\/instances\/([a-zA-Z0-9_-]+)/);
+            if (!match) {
+                throw new Error("Invalid WXO Instance URL format. Example: https://api.us-south.orchestrate.ai.ibm.com/instances/YOUR_INSTANCE_ID");
+            }
+            return { apiUrl: match[1], instanceId: match[2] };
+        }
+
+        async function requestProxy(url, method = 'GET', headers = {}, body = null) {
+            const res = await fetch(PROXY_SERVER, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, method, headers, textBody: body })
+            });
+            if (!res.ok) {
+                let errText = `Server returned status ${res.status}`;
+                try {
+                    const errJson = await res.json();
+                    errText = errJson.error || errJson.raw || errText;
+                } catch(e){}
+                throw new Error(errText);
+            }
+            return await res.json();
+        }
+
+        async function getIAMToken(apiKey) {
+            const platform = document.querySelector('input[name="deploymentPlatform"]:checked').value;
+
+            if (platform === 'aws') {
+                const endpoints = [
+                    { url: 'https://iam.platform.saas.ibm.com', name: 'Production' },
+                    { url: 'https://iam.platform.test.saas.ibm.com', name: 'Test' },
+                    { url: 'https://iam.platform.dev.saas.ibm.com', name: 'Development' }
+                ];
+                for (const env of endpoints) {
+                    try {
+                        log(`Authenticating against AWS ${env.name} IAM...`, 'info');
+                        const data = await requestProxy(
+                            `${env.url}/siusermgr/api/1.0/apikeys/token`,
+                            'POST',
+                            { 'Content-Type': 'application/json' },
+                            JSON.stringify({ apikey: apiKey })
+                        );
+                        if (data.token) return data.token;
+                    } catch(e){}
+                }
+                throw new Error("AWS IAM Authentication failed across all environments. Please verify your API Key.");
+            } else {
+                log("Authenticating against IBM Cloud IAM...", 'info');
+                const data = await requestProxy(
+                    'https://iam.cloud.ibm.com/identity/token',
+                    'POST',
+                    { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                    `grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${encodeURIComponent(apiKey)}`
+                );
+                if (data.access_token) return data.access_token;
+                throw new Error("IBM Cloud IAM Authentication failed.");
+            }
+        }
+
+        // ── Web Crypto Key Generator ──
+        async function generateClientKeyPair() {
+            log("Generating RSA-4096 Client Key Pair...", 'info');
+            const keyPair = await window.crypto.subtle.generateKey(
+                {
+                    name: "RSASSA-PKCS1-v1_5",
+                    modulusLength: 4096,
+                    publicExponent: new Uint8Array([1, 0, 1]),
+                    hash: "SHA-256"
+                },
+                true,
+                ["sign", "verify"]
+            );
+
+            const pubExport = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
+            const privExport = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+
+            const pubPem = formatPem(arrayBufferToBase64(pubExport), "PUBLIC KEY");
+            const privPem = formatPem(arrayBufferToBase64(privExport), "PRIVATE KEY");
+
+            return { publicKey: pubPem, privateKey: privPem };
+        }
+
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        function formatPem(b64, label) {
+            const lines = b64.match(/.{1,64}/g).join('\n');
+            return `-----BEGIN ${label}-----\n${lines}\n-----END ${label}-----`;
+        }
+
+        // ── Core Features: Status, Enable, Disable ──
+        async function checkSecurityStatus() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const instanceUrl = document.getElementById('instanceUrlInput').value.trim();
+
+            if (!apiKey || !instanceUrl) {
+                showToast("Please enter both API Key and WXO Instance URL.", 'error');
+                return;
+            }
+
+            try {
+                const { apiUrl, instanceId } = parseInstanceUrl(instanceUrl);
+                const token = await getIAMToken(apiKey);
+
+                log("Checking WXO security status...", 'info');
+                const config = await requestProxy(
+                    `${apiUrl}/instances/${instanceId}/v1/embed/secure/config`,
+                    'GET',
+                    { 'Authorization': `Bearer ${token}` }
+                );
+
+                if (config.is_security_enabled) {
+                    updateBanner('enabled');
+                    log("Current Status: SECURITY IS ENABLED", 'success');
+                    showToast("Security is ENABLED on WXO instance", 'success');
+                } else {
+                    updateBanner('disabled');
+                    log("Current Status: SECURITY IS DISABLED", 'error');
+                    showToast("Security is DISABLED on WXO instance", 'info');
+                }
+            } catch(err) {
+                log(`Error checking status: ${err.message}`, 'error');
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function executeEnableSecurity() {
+            closeModal('enableModal');
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const instanceUrl = document.getElementById('instanceUrlInput').value.trim();
+
+            if (!apiKey || !instanceUrl) {
+                showToast("Please enter API Key and Instance URL.", 'error');
+                return;
+            }
+
+            try {
+                const { apiUrl, instanceId } = parseInstanceUrl(instanceUrl);
+                const token = await getIAMToken(apiKey);
+
+                log("Requesting IBM Key Pair from WXO...", 'info');
+                const ibmResp = await requestProxy(
+                    `${apiUrl}/instances/${instanceId}/v1/embed/secure/generate-key-pair`,
+                    'POST',
+                    { 'Authorization': `Bearer ${token}` }
+                );
+
+                if (!ibmResp.public_key) throw new Error("Failed to retrieve IBM Public Key.");
+                const ibmPublicKey = ibmResp.public_key.replace(/\\n/g, '\n').trim();
+
+                const clientKeys = await generateClientKeyPair();
+
+                log("Enabling security and uploading public keys...", 'info');
+                await requestProxy(
+                    `${apiUrl}/instances/${instanceId}/v1/embed/secure/config`,
+                    'POST',
+                    { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    JSON.stringify({
+                        is_security_enabled: true,
+                        public_key: ibmPublicKey,
+                        client_public_key: clientKeys.publicKey
+                    })
+                );
+
+                updateBanner('enabled');
+                log("Successfully ENABLED security for watsonx Orchestrate!", 'success');
+                showToast("Security Enabled Successfully!", 'success');
+
+                // Trigger ZIP key download
+                downloadZipKeys(ibmPublicKey, clientKeys.publicKey, clientKeys.privateKey);
+
+            } catch(err) {
+                log(`Failed to enable security: ${err.message}`, 'error');
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function executeDisableSecurity() {
+            closeModal('disableModal');
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const instanceUrl = document.getElementById('instanceUrlInput').value.trim();
+
+            if (!apiKey || !instanceUrl) {
+                showToast("Please enter API Key and Instance URL.", 'error');
+                return;
+            }
+
+            try {
+                const { apiUrl, instanceId } = parseInstanceUrl(instanceUrl);
+                const token = await getIAMToken(apiKey);
+
+                log("Disabling security on WXO instance...", 'info');
+                await requestProxy(
+                    `${apiUrl}/instances/${instanceId}/v1/embed/secure/config`,
+                    'POST',
+                    { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    JSON.stringify({
+                        is_security_enabled: false,
+                        public_key: "",
+                        client_public_key: ""
+                    })
+                );
+
+                updateBanner('disabled');
+                log("Security has been DISABLED successfully.", 'success');
+                showToast("Security Disabled Successfully", 'success');
+
+            } catch(err) {
+                log(`Failed to disable security: ${err.message}`, 'error');
+                showToast(err.message, 'error');
+            }
+        }
+
+        function downloadZipKeys(ibmPub, clientPub, clientPriv) {
+            if (typeof JSZip === 'undefined') return;
+            const zip = new JSZip();
+            zip.file("ibm_public_key.pem", ibmPub);
+            zip.file("client_public_key.pem", clientPub);
+            zip.file("client_private_key.pem", clientPriv);
+            zip.generateAsync({ type: "blob" }).then(content => {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(content);
+                a.download = "wxo_security_keys.zip";
+                a.click();
+            });
+        }
+
+        // ── Modal Handlers ──
+        function openEnableModal() { document.getElementById('enableModal').classList.add('show'); }
+        function openDisableModal() { document.getElementById('disableModal').classList.add('show'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', loadCredentials);
+    </script>
+</body>
+</html>
