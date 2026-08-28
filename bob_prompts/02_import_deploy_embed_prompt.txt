@@ -1,12 +1,13 @@
-Import Prompt — watsonx Orchestrate HR Agent Suite (oic_dev)
+Import, Deploy & Embed Prompt — watsonx Orchestrate HR Agent Suite (oic_dev)
 
 Import the three pre-built Native Agent YAML files into the watsonx Orchestrate
-SaaS environment named oic_dev.
+SaaS environment named oic_dev, deploy the main orchestrator agent, and configure
+the embed chat web application.
 
 Environment facts:
-  - CLI binary  : /home/itzuser/TechXchange/venv/bin/orchestrate
+  - CLI binary  : venv/bin/orchestrate (or TechXchange-student/venv/bin/orchestrate)
     (always activate the venv before running any orchestrate command)
-    Source command: source /home/itzuser/TechXchange/venv/bin/activate
+    Source command: source venv/bin/activate
   - Active env  : oic_dev  (already configured; no env switch needed)
   - Instance URL: https://api.ca-tor.watson-orchestrate.cloud.ibm.com/...
 
@@ -17,13 +18,13 @@ Agent YAML files (all located in wxo-agents-tools/agents/):
 
 MANDATORY import order — sub-agents MUST be imported before the orchestrator:
 
-  Step 1: source /home/itzuser/TechXchange/venv/bin/activate && \
+  Step 1: source venv/bin/activate && \
           orchestrate agents import -f wxo-agents-tools/agents/general_agent.yaml
 
-  Step 2: source /home/itzuser/TechXchange/venv/bin/activate && \
+  Step 2: source venv/bin/activate && \
           orchestrate agents import -f wxo-agents-tools/agents/manager_agent.yaml
 
-  Step 3: source /home/itzuser/TechXchange/venv/bin/activate && \
+  Step 3: source venv/bin/activate && \
           orchestrate agents import -f wxo-agents-tools/agents/hr_main_agent.yaml
 
 Why this order matters:
@@ -34,13 +35,33 @@ Why this order matters:
 Post-import verification:
   Run the following command and confirm all three agents appear in the table:
 
-  source /home/itzuser/TechXchange/venv/bin/activate && \
+  source venv/bin/activate && \
   orchestrate agents list
 
   Expected agents in the output:
     - general_agent   (tools: mcp_tools_server:get_office_locations, get_leave_balance, get_holidays)
     - manager_agent   (tools: mcp_tools_server:get_employee_salary, get_team_summary_dashboard; plugins: rbac_plugin)
     - hr_main_agent   (collaborators: general_agent, manager_agent)
+
+Agent Deployment:
+  Deploy the main orchestrator agent to make it live:
+
+  source venv/bin/activate && \
+  orchestrate agents deploy -n hr_main_agent
+
+Webchat Embed & WebApp Configuration:
+  1. Generate the webchat embed snippet for hr_main_agent:
+
+     source venv/bin/activate && \
+     orchestrate channels webchat embed -a hr_main_agent
+
+  2. Update embed_chat_webapp/.env with the values extracted from the webchat embed output:
+
+     NEXT_PUBLIC_ORCHESTRATE_ORCHESTRATIONID="<orchestrationID_from_embed_output>"
+     NEXT_PUBLIC_ORCHESTRATE_HOSTURL="<hostURL_from_embed_output>"
+     NEXT_PUBLIC_ORCHESTRATE_CRN="<crn_from_embed_output>"
+     NEXT_PUBLIC_ORCHESTRATE_AGENT_ID="<agentID_from_embed_output>"
+     NEXT_PUBLIC_ORCHESTRATE_AGENT_ENVIRONMENT_ID="<agentEnvironmentID_from_embed_output>"
 
 Notes:
   - Do NOT import external agents or assistant agents for this suite.

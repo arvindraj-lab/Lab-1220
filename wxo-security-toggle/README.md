@@ -1,98 +1,104 @@
 # watsonx Orchestrate Security Toggle
 
-A lightweight, dual-interface application (Web UI + AI Agent CLI) to quickly check, enable, or disable security enforcement for **watsonx Orchestrate (WXO) Embedded Chat** instances.
+A lightweight, zero-dependency dual-interface utility (**Interactive Web UI** + **Autonomous CLI**) to check, enable, and disable Security Enforcement for **watsonx Orchestrate (WXO) Embedded Chat** instances.
+
+---
+
+## ⚡ Key Highlights & Optimizations
+
+- **Zero External Dependencies**: Built with 100% native Node.js built-ins (`http`, `crypto`, `fs`, `readline`, `fetch`). No `npm install` required!
+- **Auto-Discovery**: Automatically reads API keys and auto-derives Instance URLs from `embed_chat_webapp/.env`.
+- **Auto-Sync to WebApp**: Automatically generates and saves RSA-4096 PEM keys to both `wxo-security-toggle/keys/` and `embed_chat_webapp/wxo_security_keys/`.
+- **Dual Mode**: Clean, colorized terminal UI for humans; machine-readable `--json` output for AI agents and scripts.
 
 ---
 
 ## 🎯 Usage Modes
 
-This tool provides **two seamless ways** to enable or toggle security:
+### 1. 🚀 Quick CLI (Zero Setup Required)
 
-1. **For Humans (Web UI)**: Interactive browser interface at `index.html` or `http://localhost:3002`.
-2. **For AI Agents & LLMs**: Command-line tool with `--json` output (`cli.js`) designed for autonomous agents.
+From the `wxo-security-toggle` directory:
+
+```bash
+# 1. Enable Security & Generate RSA-4096 Keys
+node cli.js enable -k "<YOUR_IBM_CLOUD_API_KEY>"
+
+# 2. Check Security Status
+node cli.js status -k "<YOUR_IBM_CLOUD_API_KEY>"
+
+# 3. Disable Security
+node cli.js disable -k "<YOUR_IBM_CLOUD_API_KEY>"
+```
+
+*Note: If you have configured `embed_chat_webapp/.env`, the Instance URL is detected automatically!*
 
 ---
 
-## 👤 Human Usage: Web UI (`index.html`)
+### 2. 🌐 Interactive Web UI (Browser)
 
-### Step 1: Start the Server
-Run the local backend server (handles IAM authentication and CORS proxying):
+#### Step 1: Start the Backend Server
 ```bash
 cd wxo-security-toggle
 npm start
+# (or: node server.js)
 ```
-*The server starts at `http://localhost:3002`.*
+*The server starts on `http://localhost:3002`.*
 
-### Step 2: Open the Web UI
-Open **[index.html](index.html)** in your browser or navigate to `http://localhost:3002`.
+#### Step 2: Open the Web UI
+Navigate to **[http://localhost:3002](http://localhost:3002)** in your browser.
 
-### Step 3: Toggle Security
-1. Select your platform (**IBM Cloud SaaS** or **AWS**).
-2. Enter your **API Key** and **WXO Service Instance URL**.
-3. Click:
-   - **Check Status**: View current security status.
-   - **Enable Security**: Generates RSA-4096 keys, registers public keys with WXO, enables security, and downloads a `.zip` containing all key PEM files.
+#### Step 3: Toggle Security
+1. Enter your **IBM Cloud API Key** (Instance URL is auto-filled from workspace).
+2. Click:
+   - **Check Status**: View current security status on your WXO instance.
+   - **Enable Security**: Generates RSA-4096 keys, registers public keys with WXO, activates encryption, and downloads key ZIP.
    - **Disable Security**: Deactivates security enforcement on your instance.
 
 ---
 
-## 🤖 LLM & AI Agent Usage: Autonomous CLI (`cli.js`)
+### 3. 🤖 AI Agent & LLM Workflow (`--json` mode)
 
-If a user asks an LLM / AI Agent to enable security, the LLM should follow this workflow:
+Autonomous agents should run the CLI with `--json` for machine-parsable outputs:
 
-### Step 1: Verify Proxy Backend is Running
-Check if `server.js` is active on port 3002, or start it in the background:
 ```bash
-cd wxo-security-toggle
-curl -s http://localhost:3002/api/proxy || npm start &
+# Enable Security
+node cli.js enable --json -k "<API_KEY>" -i "<INSTANCE_URL>"
+
+# Check Status
+node cli.js status --json -k "<API_KEY>" -i "<INSTANCE_URL>"
+
+# Disable Security
+node cli.js disable --json -k "<API_KEY>" -i "<INSTANCE_URL>"
 ```
 
-### Step 2: Enable Security (Non-Interactive JSON Mode)
-Execute `node cli.js enable` passing `--json`, platform, API key, and instance URL:
-```bash
-node cli.js enable --json -p <ibm|aws> -k "<API_KEY>" -i "<INSTANCE_URL>" -o ./keys
-```
-
-**Response Output (JSON on `stdout`):**
+**Sample JSON Output (`stdout`):**
 ```json
 {
   "success": true,
   "action": "enable",
   "platform": "ibm",
-  "instance_id": "<YOUR_INSTANCE_ID>",
+  "instance_id": "9621f6ac-c42a-4096-9f31-47b4343699f3",
   "is_security_enabled": true,
   "status": "enabled",
   "keys": {
-    "output_dir": "./keys",
-    "ibm_public_key": "./keys/ibm_public_key.pem",
-    "client_public_key": "./keys/client_public_key.pem",
-    "client_private_key": "./keys/client_private_key.pem"
+    "output_dir": ".../wxo-security-toggle/keys",
+    "ibm_public_key": ".../wxo-security-toggle/keys/ibm_public_key.pem",
+    "client_public_key": ".../wxo-security-toggle/keys/client_public_key.pem",
+    "client_private_key": ".../wxo-security-toggle/keys/client_private_key.pem",
+    "synced_to_webapp": ".../embed_chat_webapp/wxo_security_keys"
   }
 }
 ```
 
-### Step 3: Check Status (LLM Command)
-```bash
-node cli.js status --json -p <ibm|aws> -k "<API_KEY>" -i "<INSTANCE_URL>"
-```
-
-### Step 4: Disable Security (LLM Command)
-```bash
-node cli.js disable --json -p <ibm|aws> -k "<API_KEY>" -i "<INSTANCE_URL>"
-```
-
 ---
 
-## ⚙️ Environment Variables (Optional)
+## 🔑 Key Artifacts Generated
 
-Alternatively, agents or scripts can export environment variables before running commands:
-```bash
-export WXO_PLATFORM="ibm"
-export WXO_API_KEY="<YOUR_API_KEY>"
-export WXO_INSTANCE_URL="https://api.au-syd.watson-orchestrate.cloud.ibm.com/instances/<YOUR_INSTANCE_ID>"
-
-node cli.js enable --json
-```
+| File | Purpose |
+|------|---------|
+| `ibm_public_key.pem` | IBM's public key (used by frontend/server to encrypt user identity claims) |
+| `client_public_key.pem` | Client public key (registered in watsonx Orchestrate instance) |
+| `client_private_key.pem` | Client private key (kept secret, used by webapp backend to sign JWTs) |
 
 ---
 
@@ -100,11 +106,12 @@ node cli.js enable --json
 
 ```text
 wxo-security-toggle/
-├── index.html        # Web UI for human users
-├── server.js         # Express backend server & CORS proxy (port 3002)
-├── cli.js            # CLI tool for LLMs & terminal users
-├── README.md         # Documentation & LLM workflow guide
+├── index.html        # Interactive Web UI
+├── server.js         # Zero-dependency HTTP server & CORS proxy (port 3002)
+├── cli.js            # Zero-dependency CLI for terminal users & AI agents
+├── security.txt      # Quick reference cheat sheet
+├── README.md         # Comprehensive documentation
 ├── AGENTS.md         # Instructions for AI coding agents
-├── package.json      # Dependencies (express, cors, commander)
-└── keys/             # Output directory for generated RSA PEM key pairs
+├── package.json      # Package configuration
+└── keys/             # Output directory for generated RSA-4096 PEM keys
 ```

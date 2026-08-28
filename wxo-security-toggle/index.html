@@ -614,7 +614,9 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        const PROXY_SERVER = 'http://localhost:3002/api/proxy';
+        const PROXY_SERVER = (window.location.origin && window.location.origin.startsWith('http')) 
+            ? `${window.location.origin}/api/proxy` 
+            : 'http://localhost:3002/api/proxy';
 
         // ── Helper: Local Storage & Credential Sync ──
         function saveCredentials() {
@@ -627,8 +629,9 @@
             localStorage.setItem('wxo_toggle_credentials', JSON.stringify({ platform, apiKey, instanceUrl }));
         }
 
-        function loadCredentials() {
+        async function loadCredentials() {
             const saved = localStorage.getItem('wxo_toggle_credentials');
+            let hasSavedUrl = false;
             if (saved) {
                 try {
                     const data = JSON.parse(saved);
@@ -637,9 +640,33 @@
                         if (radio) radio.checked = true;
                     }
                     if (data.apiKey) document.getElementById('apiKeyInput').value = data.apiKey;
-                    if (data.instanceUrl) document.getElementById('instanceUrlInput').value = data.instanceUrl;
+                    if (data.instanceUrl) {
+                        document.getElementById('instanceUrlInput').value = data.instanceUrl;
+                        hasSavedUrl = true;
+                    }
                     document.getElementById('apiKeyLabel').textContent = data.platform === 'aws' ? 'watsonx Orchestrate API Key' : 'IBM Cloud API Key';
                 } catch(e){}
+            }
+
+            // Auto-fetch configuration from backend (/api/config)
+            try {
+                const res = await fetch('/api/config');
+                if (res.ok) {
+                    const cfg = await res.json();
+                    if (!hasSavedUrl && cfg.instanceUrl) {
+                        document.getElementById('instanceUrlInput').value = cfg.instanceUrl;
+                        log(`Auto-detected Instance URL from workspace: ${cfg.instanceUrl}`, 'info');
+                    }
+                    if (cfg.platform) {
+                        const radio = document.querySelector(`input[name="deploymentPlatform"][value="${cfg.platform}"]`);
+                        if (radio && !saved) radio.checked = true;
+                    }
+                    if (cfg.keysPresent) {
+                        log('RSA Security keys are already present in keys/ directory.', 'info');
+                    }
+                }
+            } catch(e) {
+                // Backend /api/config might not be reached if running as static file
             }
         }
 

@@ -25,7 +25,8 @@ ENV/
 *_private_key.pem
 *.key
 
-# OS files
+# OS & Editor files
 .DS_Store
 Thumbs.db
 *.log
+.vscode/
