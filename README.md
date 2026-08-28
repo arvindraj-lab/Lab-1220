@@ -63,7 +63,7 @@ orchestrate toolkits add --kind mcp --name mcp_tools_server --description "MCP t
 
 ### 4. Agent Architecture & Deployment (Bob Prompts)
 
-Follow the prompt sequence in `bob_prompts/` using Bob or Antigravity:
+Follow the prompt sequence in `bob_prompts/` using Bob:
 
 1. **`bob_prompts/01_generate_agents_prompt.txt`**: Generates the 3 Native Agent YAML definitions (`general_agent.yaml`, `manager_agent.yaml`, `hr_main_agent.yaml`).
 2. **`bob_prompts/02_import_deploy_embed_prompt.txt`**: Imports agents in dependency order, deploys `hr_main_agent`, and extracts webchat embed variables into `embed_chat_webapp/.env`.
