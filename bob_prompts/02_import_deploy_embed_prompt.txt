@@ -60,6 +60,9 @@ Webchat Embed & WebApp Configuration:
      source venv/bin/activate && \
      orchestrate channels webchat embed -a hr_main_agent
 
+     Note: If the command prompts for a CRN, use the CRN value already configured in.env (CRN).
+      Do not ask the user to provide a CRN if one is already available there.
+
   2. Update embed_chat_webapp/.env with the values extracted from the webchat embed output:
 
      NEXT_PUBLIC_ORCHESTRATE_ORCHESTRATIONID="<orchestrationID_from_embed_output>"

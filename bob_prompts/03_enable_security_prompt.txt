@@ -1,12 +1,22 @@
 Enable watsonx Orchestrate (WXO) security for this project:
 
-1. If not provided, ask me for my IBM Cloud API Key and WXO Instance URL.
-2. Run:
+Credential source:
+  Read API_KEY and INSTANCE_URL directly from /Users/madan/Desktop/guide/Lab-1220/.env.
+  Do NOT ask the user for these values if they are already present in that file.
+  If either value is empty or missing, then ask the user to provide it.
+
+Steps:
+1. Read API_KEY and INSTANCE_URL from /Users/madan/Desktop/guide/Lab-1220/.env.
+
+2. Run the security-toggle CLI using those values:
    node wxo-security-toggle/cli.js enable -k "<API_KEY>" -i "<INSTANCE_URL>"
+
 3. Ensure the 3 generated RSA keys are placed in embed_chat_webapp/wxo_security_keys/:
    - ibm_public_key.pem
    - client_public_key.pem
    - client_private_key.pem
+
 4. Install webapp dependencies:
    cd embed_chat_webapp && npm install
+
 5. Confirm security is enabled and tell me to run `npm run dev` in embed_chat_webapp to test.
