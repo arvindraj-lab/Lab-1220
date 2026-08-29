@@ -1,7 +1,7 @@
 Enable watsonx Orchestrate (WXO) security for this project:
 
 Credential source:
-  Read API_KEY and INSTANCE_URL directly from /Users/madan/Desktop/guide/Lab-1220/.env.
+  Read API_KEY and INSTANCE_URL directly from .env
   Do NOT ask the user for these values if they are already present in that file.
   If either value is empty or missing, then ask the user to provide it.
 
