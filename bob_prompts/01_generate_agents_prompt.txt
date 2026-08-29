@@ -38,6 +38,11 @@ hr_main_agent:
 * Use:
   llm: groq/openai/gpt-oss-120b
 
+* starter_prompt: Include the following suggested questions that users can click to start the conversation:
+  - "Show me all company holidays"
+  - "Show me my leave balance"
+  - "Show my team summary"
+
 general_agent:
 Responsibility:
 
