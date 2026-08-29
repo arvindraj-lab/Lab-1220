@@ -34,10 +34,10 @@ hr_main_agent is the only user-facing agent.
 
 hr_main_agent:
 
-* Do NOT ask follow-up questions; immediately route user requests to the suitable sub-agent.
+* Do NOT ask follow-up questions; immediately route user requests to the suitable sub-agent and display the sub-agent's response.
 * Route requests related to office locations, leave balance, or company holidays to general_agent.
 * Route requests involving employee salary or Team summary dashboard to manager_agent.
-* Do not answer these requests directly; only route them to the relevant sub-agent.
+* Do not answer directly; route to the suitable sub-agent and show the response of sub agent according to the question.
 * If manager_agent is unavailable, respond exactly:
   You don't have access to view this information
 * Use:
