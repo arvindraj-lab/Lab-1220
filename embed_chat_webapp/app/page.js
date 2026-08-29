@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { APP_CONFIG } from "../config";
 
 function clearEmbedSession() {
@@ -11,6 +11,215 @@ function clearEmbedSession() {
   sessionStorage.removeItem("auth_user");
   sessionStorage.removeItem("auth_token");
   sessionStorage.embed_user_id_dev = Math.trunc(Math.random() * 1000000);
+}
+
+/* ------------------------------------------------------------------ */
+/* Decorative primitives — deterministic so SSR and client agree       */
+/* ------------------------------------------------------------------ */
+
+const MOTES = [
+  { l: "8%",  d: 17, delay: 0,   s: 2 },
+  { l: "17%", d: 23, delay: 3.4, s: 1.5 },
+  { l: "26%", d: 19, delay: 7.1, s: 2.5 },
+  { l: "35%", d: 26, delay: 1.8, s: 1.5 },
+  { l: "44%", d: 21, delay: 9.6, s: 2 },
+  { l: "53%", d: 24, delay: 5.2, s: 1.5 },
+  { l: "62%", d: 18, delay: 12.3, s: 2.5 },
+  { l: "71%", d: 27, delay: 2.7, s: 2 },
+  { l: "80%", d: 20, delay: 8.5, s: 1.5 },
+  { l: "89%", d: 22, delay: 4.4, s: 2 },
+  { l: "95%", d: 25, delay: 11.2, s: 1.5 },
+];
+
+const STARS = [
+  { t: "12%", l: "14%", d: 3.2, delay: 0 },
+  { t: "22%", l: "78%", d: 4.1, delay: 0.9 },
+  { t: "34%", l: "9%",  d: 2.8, delay: 1.7 },
+  { t: "41%", l: "63%", d: 3.7, delay: 0.4 },
+  { t: "57%", l: "88%", d: 4.4, delay: 2.3 },
+  { t: "66%", l: "23%", d: 3.1, delay: 1.2 },
+  { t: "74%", l: "71%", d: 3.9, delay: 2.9 },
+  { t: "83%", l: "38%", d: 2.6, delay: 0.6 },
+  { t: "18%", l: "46%", d: 4.6, delay: 3.4 },
+  { t: "90%", l: "56%", d: 3.4, delay: 1.9 },
+];
+
+const HEX_TICKER =
+  "3f9a2c 0x4b1e77d2 a81c 0xc4f0 rsa-2048 9de3 0x77ab21 sha256 6c0f 0x1d84be oaep 5a2e 0x93fc17 rs256 e410 0x2b6d ";
+
+/* ------------------------------------------------------------------ */
+/* Inline icon set                                                     */
+/* ------------------------------------------------------------------ */
+
+const Icon = {
+  user: (p) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  lock: (p) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+  eye: (p) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ),
+  eyeOff: (p) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.4 0 10 7 10 7a17.6 17.6 0 0 1-2.68 3.68M6.6 6.6A17.7 17.7 0 0 0 2 11s3.6 7 10 7a9 9 0 0 0 5.4-1.6" />
+      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+      <path d="m2 2 20 20" />
+    </svg>
+  ),
+  crown: (p) => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M2 18h20l-1.5-9-5 3.5L12 5 8.5 12.5l-5-3.5L2 18Z" />
+    </svg>
+  ),
+  badge: (p) => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M5.5 21a7 7 0 0 1 13 0" />
+    </svg>
+  ),
+  check: (p) => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="m4 12.5 5.2 5.2L20 6.8" />
+    </svg>
+  ),
+  arrow: (p) => (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M5 12h13" />
+      <path d="m12.5 5.5 6.5 6.5-6.5 6.5" />
+    </svg>
+  ),
+  shield: (p) => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 22s8-3.6 8-10V5.2L12 2 4 5.2V12c0 6.4 8 10 8 10Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  ),
+  alert: (p) => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  ),
+  bolt: (p) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
+    </svg>
+  ),
+  logout: (p) => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  ),
+  bigLock: (p) => (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="3.5" y="10.5" width="17" height="11" rx="2.4" />
+      <path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5" />
+      <circle cx="12" cy="16" r="1.4" />
+    </svg>
+  ),
+};
+
+/* ------------------------------------------------------------------ */
+/* Presentation-only motion components                                 */
+/* ------------------------------------------------------------------ */
+
+const SCRAMBLE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#$%&@/\\<>*";
+
+/** Decrypt-style reveal. Renders the final text on the server and during
+ *  reduced-motion, so it never changes what the page actually says. */
+function ScrambleText({ text, className = "", duration = 950, delay = 0 }) {
+  const [display, setDisplay] = useState(text);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let raf = 0;
+    let startedAt = 0;
+
+    const timer = setTimeout(() => {
+      setBusy(true);
+      const tick = (now) => {
+        if (!startedAt) startedAt = now;
+        const t = Math.min(1, (now - startedAt) / duration);
+        const revealed = t * text.length;
+        let out = "";
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          if (i < revealed || ch === " ") out += ch;
+          else out += SCRAMBLE_CHARS[(Math.random() * SCRAMBLE_CHARS.length) | 0];
+        }
+        setDisplay(out);
+        if (t < 1) {
+          raf = requestAnimationFrame(tick);
+        } else {
+          setDisplay(text);
+          setBusy(false);
+        }
+      };
+      raf = requestAnimationFrame(tick);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [text, duration, delay]);
+
+  return <span className={`scramble ${busy ? "busy" : ""} ${className}`}>{display}</span>;
+}
+
+/** Eases the rendered percentage toward the real one so the meter glides
+ *  between the discrete handshake stages. Isolated so the tween only
+ *  re-renders the meter. */
+function ProgressMeter({ progress }) {
+  const [shown, setShown] = useState(progress);
+  const value = useRef(progress);
+
+  useEffect(() => {
+    let raf = 0;
+    const step = () => {
+      const diff = progress - value.current;
+      if (Math.abs(diff) < 0.4) {
+        value.current = progress;
+        setShown(progress);
+        return;
+      }
+      value.current += diff * 0.14;
+      setShown(value.current);
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [progress]);
+
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "8px" }}>
+        <span className="eyebrow">Handshake Progress</span>
+        <span className="mono" style={{ fontSize: "13px", fontWeight: 700, color: "var(--indigo-300)" }}>
+          {Math.round(shown)}%
+        </span>
+      </div>
+      <div className="progress-track" style={{ marginBottom: "22px" }}>
+        <div className="progress-bar-shimmer" style={{ width: `${shown}%` }} />
+      </div>
+    </>
+  );
 }
 
 export default function Page() {
@@ -24,11 +233,17 @@ export default function Page() {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null); // 'manager' | 'general'
   const [error, setError] = useState("");
-  
+
   // Cinematic Multi-Step Loading State
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [authStep, setAuthStep] = useState(0); 
+  const [authStep, setAuthStep] = useState(0);
   const [authProgress, setAuthProgress] = useState(0);
+
+  // Presentation-only refs/state for the cursor-reactive lighting
+  const stageRef = useRef(null);
+  const cardRef = useRef(null);
+  const submitRef = useRef(null);
+  const [ripples, setRipples] = useState([]);
 
   const AUTH_STEPS = [
     { title: "Verifying User Credentials", subtitle: "Checking role authorization & access level..." },
@@ -55,6 +270,68 @@ export default function Page() {
       clearEmbedSession();
     }
   }, []);
+
+  // -------------------------------------------------------------
+  // Cursor-reactive spotlight + parallax tilt (purely cosmetic)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (isAuthenticated) return;
+
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let frame = 0;
+
+    function onMove(e) {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        stage.style.setProperty("--mx", `${e.clientX}px`);
+        stage.style.setProperty("--my", `${e.clientY}px`);
+
+        // Normalised -0.5..0.5 cursor offset drives the background parallax
+        stage.style.setProperty("--px", ((e.clientX / window.innerWidth) - 0.5).toFixed(3));
+        stage.style.setProperty("--py", ((e.clientY / window.innerHeight) - 0.5).toFixed(3));
+
+        const btn = submitRef.current;
+        if (btn && fine && !reduced) {
+          const br = btn.getBoundingClientRect();
+          const dx = e.clientX - (br.left + br.width / 2);
+          const dy = e.clientY - (br.top + br.height / 2);
+          const near = Math.abs(dx) < br.width / 2 + 90 && Math.abs(dy) < br.height / 2 + 70;
+          btn.style.setProperty("--bx", near ? `${(dx * 0.09).toFixed(2)}px` : "0px");
+          btn.style.setProperty("--by", near ? `${(dy * 0.16).toFixed(2)}px` : "0px");
+        }
+
+        const card = cardRef.current;
+        if (!card || !fine || reduced) return;
+        const r = card.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width;
+        const py = (e.clientY - r.top) / r.height;
+        card.style.setProperty("--gx", `${(px * 100).toFixed(1)}%`);
+        card.style.setProperty("--gy", `${(py * 100).toFixed(1)}%`);
+        card.style.setProperty("--ry", `${((px - 0.5) * 7).toFixed(2)}deg`);
+        card.style.setProperty("--rx", `${((0.5 - py) * 5).toFixed(2)}deg`);
+      });
+    }
+
+    function onLeave() {
+      const card = cardRef.current;
+      if (!card) return;
+      card.style.setProperty("--rx", "0deg");
+      card.style.setProperty("--ry", "0deg");
+    }
+
+    window.addEventListener("pointermove", onMove, { passive: true });
+    document.addEventListener("pointerleave", onLeave);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerleave", onLeave);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [isAuthenticated]);
 
   // -------------------------------------------------------------
   // Role Preset Selection Helper
@@ -197,6 +474,12 @@ export default function Page() {
         form: "float",
         showOrchestrateHeader: true,
       },
+      // Widget theming only — the loader reads config.public.style and maps
+      // theme:"dark" to Carbon's g100 token set, so the chat matches the shell.
+      style: {
+        theme: "dark",
+        primaryColor: "#6366F1",
+      },
     };
 
     window.orchestrateInitCalled = true;
@@ -225,69 +508,87 @@ export default function Page() {
     window.location.reload();
   }
 
-  return (
-    <div style={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
-      {/* Ambient Moving Light Orbs */}
-      <div
-        className="animate-orb-1"
-        style={{
-          position: "fixed",
-          top: "-15%",
-          left: "-10%",
-          width: "55vw",
-          height: "55vw",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.06) 50%, transparent 70%)",
-          filter: "blur(75px)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      <div
-        className="animate-orb-2"
-        style={{
-          position: "fixed",
-          bottom: "-20%",
-          right: "-10%",
-          width: "60vw",
-          height: "60vw",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(168, 85, 247, 0.16) 0%, rgba(34, 211, 238, 0.05) 50%, transparent 70%)",
-          filter: "blur(95px)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      <div
-        className="animate-orb-3"
-        style={{
-          position: "fixed",
-          top: "40%",
-          left: "35%",
-          width: "40vw",
-          height: "40vw",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(34, 211, 238, 0.09) 0%, transparent 65%)",
-          filter: "blur(85px)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
+  const isManager = !!userInfo?.is_manager;
 
-      {/* High-Tech Grid Pattern */}
-      <div
-        className="grid-bg"
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          pointerEvents: "none",
-          opacity: 0.65,
-          zIndex: 0,
-        }}
-      />
+  return (
+    <div ref={stageRef} style={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
+      {/* ============================ AMBIENT ATMOSPHERE ============================ */}
+
+      <div className="orb-field">
+        {/* Each layer drifts a different distance with the cursor for depth */}
+        <div className="orb-parallax" style={{ "--depth": "46px" }}>
+          <div
+            className="orb animate-orb-1"
+            style={{
+              top: "-18%",
+              left: "-12%",
+              width: "58vw",
+              height: "58vw",
+              background:
+                "radial-gradient(circle, rgba(99, 102, 241, 0.26) 0%, rgba(79, 70, 229, 0.08) 48%, transparent 70%)",
+              filter: "blur(80px)",
+            }}
+          />
+        </div>
+
+        <div className="orb-parallax" style={{ "--depth": "-38px" }}>
+          <div
+            className="orb animate-orb-2"
+            style={{
+              bottom: "-22%",
+              right: "-12%",
+              width: "62vw",
+              height: "62vw",
+              background:
+                "radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(34, 211, 238, 0.07) 48%, transparent 70%)",
+              filter: "blur(100px)",
+            }}
+          />
+        </div>
+
+        <div className="orb-parallax" style={{ "--depth": "70px" }}>
+          <div
+            className="orb animate-orb-3"
+            style={{
+              top: "36%",
+              left: "34%",
+              width: "42vw",
+              height: "42vw",
+              background: "radial-gradient(circle, rgba(34, 211, 238, 0.12) 0%, transparent 65%)",
+              filter: "blur(90px)",
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="bg-layer grid-bg" />
+      <div className="scan-beam" />
+      <div className="spotlight" />
+
+      {STARS.map((s, i) => (
+        <span
+          key={`st-${i}`}
+          className="star"
+          style={{ top: s.t, left: s.l, animationDuration: `${s.d}s`, animationDelay: `${s.delay}s` }}
+        />
+      ))}
+
+      {MOTES.map((m, i) => (
+        <span
+          key={`mo-${i}`}
+          className="mote"
+          style={{
+            left: m.l,
+            width: `${m.s}px`,
+            height: `${m.s}px`,
+            animationDuration: `${m.d}s`,
+            animationDelay: `${m.delay}s`,
+          }}
+        />
+      ))}
+
+      <div className="vignette" />
+      <div className="grain" />
 
       {/* ================================================================= */}
       {/* 1. LOGIN SCREEN                                                  */}
@@ -296,582 +597,394 @@ export default function Page() {
         <main
           style={{
             position: "relative",
-            zIndex: 1,
+            zIndex: 2,
             minHeight: "100vh",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "40px 24px",
+            padding: "44px 16px",
           }}
         >
-          <div
-            className="animate-fade-in-up"
-            style={{
-              width: "100%",
-              maxWidth: "1060px",
-              display: "grid",
-              gridTemplateColumns: "1.15fr 1fr",
-              gap: "52px",
-              alignItems: "center",
-            }}
-          >
-            {/* LEFT COLUMN: HERO PLATFORM MATRIX */}
-            <div style={{ paddingRight: "12px" }}>
-              {/* Badge */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "7px 16px",
-                  borderRadius: "30px",
-                  background: "rgba(99, 102, 241, 0.12)",
-                  border: "1px solid rgba(99, 102, 241, 0.28)",
-                  marginBottom: "26px",
-                }}
-              >
-                <span
-                  style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    backgroundColor: "#22D3EE",
-                    boxShadow: "0 0 12px #22D3EE",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#A5B4FC",
-                    letterSpacing: "0.4px",
-                  }}
-                >
-                  watsonx Orchestrate × FastMCP 2.0
-                </span>
-              </div>
+          <div className="auth-shell animate-card-enter">
+            <div className="auth-aura" />
+            <div className="auth-halo" />
 
-              {/* Headline */}
-              <h1
-                style={{
-                  fontSize: "46px",
-                  fontWeight: "800",
-                  lineHeight: "1.14",
-                  letterSpacing: "-0.025em",
-                  marginBottom: "18px",
-                  background: "linear-gradient(135deg, #FFFFFF 30%, #E2E8F0 70%, #94A3B8 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                Enterprise AI <br />
-                <span
-                  style={{
-                    background: "linear-gradient(135deg, #818CF8 0%, #C084FC 50%, #38BDF8 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  HR Agentic Platform
-                </span>
-              </h1>
-
-              {/* Subtitle */}
-              <p
-                style={{
-                  fontSize: "16px",
-                  lineHeight: "1.65",
-                  color: "#94A3B8",
-                  marginBottom: "34px",
-                  maxWidth: "480px",
-                }}
-              >
-                Zero-trust workforce intelligence engine. Executes multi-agent delegation with
-                automatic on-behalf-of identity assertions and secure FastMCP tool authorization.
-              </p>
-
-              {/* Architecture Feature Highlights */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "14px",
-                    padding: "14px 18px",
-                    borderRadius: "14px",
-                    background: "rgba(255, 255, 255, 0.025)",
-                    border: "1px solid rgba(255, 255, 255, 0.06)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "10px",
-                      background: "rgba(99, 102, 241, 0.16)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#818CF8",
-                      fontSize: "20px",
-                      flexShrink: 0,
-                    }}
-                  >
-                    👑
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: "700", color: "#F1F5F9" }}>
-                      Role-Based Supervisor Routing
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#64748B", marginTop: "3px", lineHeight: "1.4" }}>
-                      <code style={{ color: "#818CF8", background: "rgba(99, 102, 241, 0.12)", padding: "2px 6px", borderRadius: "4px" }}>is_manager: true</code> routes to Manager Agent for employee salary and team analytics.
-                    </div>
-                  </div>
+            <div ref={cardRef} className="auth-card glass-panel">
+              {/* Handshake-complete flash, right before the chat view takes over */}
+              {isAuthenticating && authProgress >= 100 && (
+                <div className="burst">
+                  <span className="burst-flash" />
+                  <span className="burst-ring" />
+                  <span className="burst-ring d2" />
+                  <span className="burst-ring d3" />
                 </div>
+              )}
 
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "14px",
-                    padding: "14px 18px",
-                    borderRadius: "14px",
-                    background: "rgba(255, 255, 255, 0.025)",
-                    border: "1px solid rgba(255, 255, 255, 0.06)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "10px",
-                      background: "rgba(34, 211, 238, 0.16)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#22D3EE",
-                      fontSize: "20px",
-                      flexShrink: 0,
-                    }}
-                  >
-                    🛡️
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: "700", color: "#F1F5F9" }}>
-                      Asymmetric RSA-2048 & FastMCP Guard
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#64748B", marginTop: "3px", lineHeight: "1.4" }}>
-                      Payload encrypted with IBM Public Key, signed via RS256, and validated across 5 secured MCP tools.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <div className="card-body">
+                {/* ------------------------------------------------------------- */}
+                {/* STATE A: MULTI-STAGE CINEMATIC LOADING OVERLAY               */}
+                {/* ------------------------------------------------------------- */}
+                {isAuthenticating ? (
+                  <div className="animate-scale-in" style={{ minHeight: "494px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                    <div style={{ textAlign: "center", marginBottom: "22px" }}>
+                      {/* Tri-ring orbital spinner */}
+                      <div className="orbit-core">
+                        <span className="orbit-glow" />
+                        <span className="orbit-ring r1" />
+                        <span className="orbit-ring r2" />
+                        <span className="orbit-ring r3" />
+                        <span className="orbit-icon">
+                          <Icon.bigLock />
+                        </span>
+                      </div>
 
-            {/* RIGHT COLUMN: LOGIN CARD OR CINEMATIC AUTH PROGRESS */}
-            <div
-              className="glass-panel"
-              style={{
-                borderRadius: "26px",
-                padding: "38px 34px",
-                position: "relative",
-                minHeight: "510px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-              }}
-            >
-              {/* ------------------------------------------------------------- */}
-              {/* STATE A: MULTI-STAGE CINEMATIC LOADING OVERLAY               */}
-              {/* ------------------------------------------------------------- */}
-              {isAuthenticating ? (
-                <div className="animate-scale-in" style={{ padding: "10px 6px" }}>
-                  <div style={{ textAlign: "center", marginBottom: "26px" }}>
-                    {/* Glowing Progress Spinner */}
-                    <div
-                      style={{
-                        width: "68px",
-                        height: "68px",
-                        margin: "0 auto 18px auto",
-                        position: "relative",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          borderRadius: "50%",
-                          border: "3px solid rgba(99, 102, 241, 0.2)",
-                          borderTopColor: "#6366F1",
-                          borderRightColor: "#22D3EE",
-                          animation: "ringRotate 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite",
-                        }}
-                      />
-                      <span style={{ fontSize: "24px" }}>🔐</span>
+                      <h3 style={{ fontSize: "20px", fontWeight: "800", letterSpacing: "-0.02em", marginBottom: "6px" }}>
+                        <span className="gradient-text">Authenticating Identity</span>
+                      </h3>
+                      <p style={{ fontSize: "12.5px", color: "var(--text-muted)", lineHeight: 1.55 }}>
+                        Generating cryptographic assertion for watsonx Orchestrate...
+                      </p>
                     </div>
 
-                    <h3 style={{ fontSize: "20px", fontWeight: "700", color: "#FFFFFF", marginBottom: "6px" }}>
-                      Authenticating Identity
-                    </h3>
-                    <p style={{ fontSize: "13px", color: "#94A3B8" }}>
-                      Generating cryptographic assertion for watsonx Orchestrate...
-                    </p>
-                  </div>
+                    {/* Live hex telemetry ribbon */}
+                    <div className="hex-stream" style={{ marginBottom: "14px" }}>
+                      <div className="hex-stream-inner">
+                        <span>{HEX_TICKER}</span>
+                        <span>{HEX_TICKER}</span>
+                      </div>
+                    </div>
 
-                  {/* Progress Bar with Shimmer */}
-                  <div
-                    style={{
-                      height: "6px",
-                      width: "100%",
-                      borderRadius: "6px",
-                      background: "rgba(255, 255, 255, 0.08)",
-                      overflow: "hidden",
-                      marginBottom: "28px",
-                    }}
-                  >
-                    <div
-                      className="progress-bar-shimmer"
-                      style={{
-                        height: "100%",
-                        width: `${authProgress}%`,
-                        transition: "width 0.35s ease-in-out",
-                        borderRadius: "6px",
-                      }}
-                    />
-                  </div>
+                    {/* Progress readout — eases between the discrete stages */}
+                    <ProgressMeter progress={authProgress} />
 
-                  {/* Multi-Step Checklist */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                    {AUTH_STEPS.map((step, idx) => {
-                      const isComplete = authStep > idx;
-                      const isCurrent = authStep === idx;
-                      return (
+                    {/* Multi-Step Checklist */}
+                    <div className="step-list" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div className="rail-track">
                         <div
-                          key={idx}
-                          className={isCurrent || isComplete ? "animate-step-in" : ""}
+                          className="rail-fill"
+                          style={{ height: `${(authStep / (AUTH_STEPS.length - 1)) * 100}%` }}
+                        />
+                      </div>
+
+                      {AUTH_STEPS.map((step, idx) => {
+                        const isComplete = authStep > idx;
+                        const isCurrent = authStep === idx;
+                        const state = isComplete ? "done" : isCurrent ? "current" : "pending";
+                        return (
+                          <div
+                            key={idx}
+                            className={`step-row ${state} ${isCurrent || isComplete ? "animate-step-in" : ""}`}
+                          >
+                            <div className={`step-dot ${state}`}>
+                              {isComplete ? (
+                                <span className="check-badge" style={{ display: "flex" }}>
+                                  <Icon.check />
+                                </span>
+                              ) : isCurrent ? (
+                                <span
+                                  style={{
+                                    width: "7px",
+                                    height: "7px",
+                                    borderRadius: "50%",
+                                    background: "#fff",
+                                  }}
+                                />
+                              ) : (
+                                idx + 1
+                              )}
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "12.5px",
+                                  fontWeight: 700,
+                                  letterSpacing: "-0.01em",
+                                  color: isComplete || isCurrent ? "var(--text-main)" : "var(--text-dim)",
+                                }}
+                              >
+                                {step.title}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "10.5px",
+                                  marginTop: "1px",
+                                  color: isCurrent ? "var(--indigo-300)" : "var(--text-dim)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {step.subtitle}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  /* ------------------------------------------------------------- */
+                  /* STATE B: STANDARD LOGIN FORM                                  */
+                  /* ------------------------------------------------------------- */
+                  <div className="stagger">
+                    {/* Brand lockup */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "22px" }}>
+                      <div style={{ position: "relative" }}>
+                        <div className="brand-ring" />
+                        <div className="brand-mark">
+                          <span style={{ position: "relative", zIndex: 1, color: "#fff", display: "flex" }}>
+                            <Icon.bolt />
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="brand-title">
+                          <ScrambleText className="gradient-text" text="TechXchange HR Assistant" delay={260} />
+                        </div>
+                        <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: "12px",
-                            padding: "8px 12px",
-                            borderRadius: "10px",
-                            background: isCurrent
-                              ? "rgba(99, 102, 241, 0.12)"
-                              : isComplete
-                              ? "rgba(16, 185, 129, 0.08)"
-                              : "transparent",
-                            border: isCurrent
-                              ? "1px solid rgba(99, 102, 241, 0.35)"
-                              : isComplete
-                              ? "1px solid rgba(16, 185, 129, 0.25)"
-                              : "1px solid transparent",
-                            transition: "all 0.25s ease",
+                            gap: "7px",
+                            marginTop: "4px",
                           }}
                         >
-                          <div
-                            style={{
-                              width: "22px",
-                              height: "22px",
-                              borderRadius: "50%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "12px",
-                              fontWeight: "700",
-                              background: isComplete
-                                ? "#10B981"
-                                : isCurrent
-                                ? "#6366F1"
-                                : "rgba(255, 255, 255, 0.1)",
-                              color: "#FFFFFF",
-                              boxShadow: isComplete
-                                ? "0 0 10px rgba(16, 185, 129, 0.4)"
-                                : isCurrent
-                                ? "0 0 10px rgba(99, 102, 241, 0.4)"
-                                : "none",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {isComplete ? "✓" : isCurrent ? "●" : idx + 1}
-                          </div>
-
-                          <div style={{ flex: 1 }}>
-                            <div
-                              style={{
-                                fontSize: "13px",
-                                fontWeight: "600",
-                                color: isComplete || isCurrent ? "#F8FAFC" : "#64748B",
-                              }}
-                            >
-                              {step.title}
-                            </div>
-                            <div style={{ fontSize: "11px", color: isCurrent ? "#A5B4FC" : "#64748B" }}>
-                              {step.subtitle}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                /* ------------------------------------------------------------- */
-                /* STATE B: STANDARD LOGIN FORM                                  */
-                /* ------------------------------------------------------------- */
-                <div>
-                  {/* Card Header */}
-                  <div style={{ marginBottom: "24px" }}>
-                    <h2
-                      style={{
-                        fontSize: "23px",
-                        fontWeight: "700",
-                        color: "#FFFFFF",
-                        letterSpacing: "-0.015em",
-                      }}
-                    >
-                      Sign In to Assistant
-                    </h2>
-                    <p style={{ fontSize: "13px", color: "#94A3B8", marginTop: "4px" }}>
-                      Select a role preset below or enter credentials manually
-                    </p>
-                  </div>
-
-                  {/* 1-CLICK ROLE PRESET CARDS */}
-                  <div style={{ marginBottom: "22px" }}>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.8px",
-                        color: "#64748B",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Identity Presets
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                      {/* Manager Option */}
-                      <div
-                        onClick={() => selectPreset("manager")}
-                        className={`role-card ${selectedRole === "manager" ? "active" : ""}`}
-                        style={{ padding: "14px 14px", position: "relative" }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ fontSize: "13px", fontWeight: "700", color: "#F8FAFC" }}>
-                            👑 Manager
+                          <span className="status-dot" />
+                          <span style={{ fontSize: "11.5px", color: "var(--text-muted)", fontWeight: 500 }}>
+                            Secure session ready
                           </span>
-                          {selectedRole === "manager" && (
-                            <span style={{ fontSize: "12px", color: "#818CF8", fontWeight: "700" }}>✓</span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: "11px", color: "#818CF8", fontWeight: "600", marginTop: "4px" }}>
-                          is_manager: true
-                        </div>
-                        <div style={{ fontSize: "10px", color: "#64748B", marginTop: "2px" }}>
-                          Pass: manager@123
-                        </div>
-                      </div>
-
-                      {/* General Option */}
-                      <div
-                        onClick={() => selectPreset("general")}
-                        className={`role-card ${selectedRole === "general" ? "active" : ""}`}
-                        style={{ padding: "14px 14px", position: "relative" }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ fontSize: "13px", fontWeight: "700", color: "#F8FAFC" }}>
-                            👤 General
-                          </span>
-                          {selectedRole === "general" && (
-                            <span style={{ fontSize: "12px", color: "#34D399", fontWeight: "700" }}>✓</span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: "11px", color: "#34D399", fontWeight: "600", marginTop: "4px" }}>
-                          is_manager: false
-                        </div>
-                        <div style={{ fontSize: "10px", color: "#64748B", marginTop: "2px" }}>
-                          Pass: general@123
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Error Alert */}
-                  {error && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "11px 14px",
-                        borderRadius: "10px",
-                        background: "rgba(239, 68, 68, 0.12)",
-                        border: "1px solid rgba(239, 68, 68, 0.3)",
-                        color: "#FCA5A5",
-                        fontSize: "13px",
-                        marginBottom: "18px",
-                      }}
-                    >
-                      <span>⚠️</span>
-                      <span>{error}</span>
-                    </div>
-                  )}
+                    <div className="divider-glow" style={{ marginBottom: "20px" }} />
 
-                  {/* Form */}
-                  <form onSubmit={handleLogin}>
-                    {/* Username Input */}
-                    <div style={{ marginBottom: "16px" }}>
-                      <label
+                    {/* 1-CLICK ROLE PRESET CARDS */}
+                    <div style={{ marginBottom: "18px" }}>
+                      <div
                         style={{
-                          display: "block",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          color: "#CBD5E1",
-                          marginBottom: "6px",
-                          letterSpacing: "0.2px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: "9px",
                         }}
                       >
-                        Username
-                      </label>
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type="text"
-                          className="glass-input"
-                          placeholder="Manager or General"
-                          value={username}
-                          onChange={(e) => {
-                            setUsername(e.target.value);
-                            setSelectedRole(null);
-                          }}
-                          required
-                          style={{
-                            width: "100%",
-                            padding: "12px 14px 12px 38px",
-                            borderRadius: "10px",
-                            fontSize: "14px",
-                          }}
-                        />
-                        <span
-                          style={{
-                            position: "absolute",
-                            left: "12px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            color: "#64748B",
-                            fontSize: "15px",
-                          }}
-                        >
-                          👤
+                        <span className="eyebrow">Identity Presets</span>
+                        <span style={{ fontSize: "10.5px", color: "var(--text-faint)" }}>
+                          one-click fill
                         </span>
                       </div>
-                    </div>
 
-                    {/* Password Input */}
-                    <div style={{ marginBottom: "24px" }}>
-                      <label
-                        style={{
-                          display: "block",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          color: "#CBD5E1",
-                          marginBottom: "6px",
-                          letterSpacing: "0.2px",
-                        }}
-                      >
-                        Password
-                      </label>
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          className="glass-input"
-                          placeholder="Enter password"
-                          value={password}
-                          onChange={(e) => {
-                            setPassword(e.target.value);
-                            setSelectedRole(null);
-                          }}
-                          required
-                          style={{
-                            width: "100%",
-                            padding: "12px 42px 12px 38px",
-                            borderRadius: "10px",
-                            fontSize: "14px",
-                          }}
-                        />
-                        <span
-                          style={{
-                            position: "absolute",
-                            left: "12px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            color: "#64748B",
-                            fontSize: "15px",
-                          }}
-                        >
-                          🔒
-                        </span>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "11px" }}>
+                        {/* Manager Option */}
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          style={{
-                            position: "absolute",
-                            right: "12px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            background: "none",
-                            border: "none",
-                            color: "#94A3B8",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            padding: 0,
-                          }}
+                          onClick={() => selectPreset("manager")}
+                          className={`role-card ${selectedRole === "manager" ? "active" : ""}`}
                         >
-                          {showPassword ? "👁️" : "👁️‍🗨️"}
+                          <span className="rail" />
+                          <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "9px" }}>
+                            <span
+                              className="role-icon"
+                              style={{
+                                background: "rgba(99, 102, 241, 0.18)",
+                                color: "var(--indigo-400)",
+                                boxShadow: selectedRole === "manager" ? "0 0 14px rgba(99,102,241,0.5)" : "none",
+                              }}
+                            >
+                              <Icon.crown />
+                            </span>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-main)" }}>
+                              Manager
+                            </span>
+                            {selectedRole === "manager" && (
+                              <span
+                                className="check-badge"
+                                style={{ marginLeft: "auto", display: "flex", color: "var(--indigo-300)" }}
+                              >
+                                <Icon.check />
+                              </span>
+                            )}
+                          </div>
+                          <div className="code-pill">is_manager: true</div>
+                          <div className="mono" style={{ fontSize: "9.5px", color: "var(--text-faint)", marginTop: "6px" }}>
+                            manager@123
+                          </div>
+                        </button>
+
+                        {/* General Option */}
+                        <button
+                          type="button"
+                          onClick={() => selectPreset("general")}
+                          className={`role-card emerald ${selectedRole === "general" ? "active" : ""}`}
+                        >
+                          <span className="rail" />
+                          <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "9px" }}>
+                            <span
+                              className="role-icon"
+                              style={{
+                                background: "rgba(16, 185, 129, 0.16)",
+                                color: "var(--emerald-400)",
+                                boxShadow: selectedRole === "general" ? "0 0 14px rgba(16,185,129,0.45)" : "none",
+                              }}
+                            >
+                              <Icon.badge />
+                            </span>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-main)" }}>
+                              General
+                            </span>
+                            {selectedRole === "general" && (
+                              <span
+                                className="check-badge"
+                                style={{ marginLeft: "auto", display: "flex", color: "var(--emerald-400)" }}
+                              >
+                                <Icon.check />
+                              </span>
+                            )}
+                          </div>
+                          <div className="code-pill emerald">is_manager: false</div>
+                          <div className="mono" style={{ fontSize: "9.5px", color: "var(--text-faint)", marginTop: "6px" }}>
+                            general@123
+                          </div>
                         </button>
                       </div>
                     </div>
 
-                    {/* Submit Button */}
-                    <button
-                      type="submit"
-                      className="btn-primary"
+                    {/* Error Alert */}
+                    {error && (
+                      <div className="alert-error animate-shake" style={{ marginBottom: "16px" }}>
+                        <span style={{ display: "flex", flexShrink: 0 }}>
+                          <Icon.alert />
+                        </span>
+                        <span>{error}</span>
+                      </div>
+                    )}
+
+                    {/* Form */}
+                    <form onSubmit={handleLogin}>
+                      {/* Username Input */}
+                      <div className="field-group" style={{ marginBottom: "14px" }}>
+                        <label className="field-label" htmlFor="wxo-username">
+                          Username
+                        </label>
+                        <div className="field">
+                          <input
+                            id="wxo-username"
+                            type="text"
+                            className="glass-input"
+                            placeholder="Manager or General"
+                            autoComplete="username"
+                            value={username}
+                            onChange={(e) => {
+                              setUsername(e.target.value);
+                              setSelectedRole(null);
+                            }}
+                            required
+                            style={{ padding: "12px 14px 12px 40px" }}
+                          />
+                          <span className="field-icon">
+                            <Icon.user />
+                          </span>
+                          <span className="field-underline" />
+                        </div>
+                      </div>
+
+                      {/* Password Input */}
+                      <div className="field-group" style={{ marginBottom: "22px" }}>
+                        <label className="field-label" htmlFor="wxo-password">
+                          Password
+                        </label>
+                        <div className="field">
+                          <input
+                            id="wxo-password"
+                            type={showPassword ? "text" : "password"}
+                            className="glass-input"
+                            placeholder="Enter password"
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => {
+                              setPassword(e.target.value);
+                              setSelectedRole(null);
+                            }}
+                            required
+                            style={{ padding: "12px 44px 12px 40px" }}
+                          />
+                          <span className="field-icon">
+                            <Icon.lock />
+                          </span>
+                          <button
+                            type="button"
+                            className="ghost-btn"
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            title={showPassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword ? <Icon.eyeOff /> : <Icon.eye />}
+                          </button>
+                          <span className="field-underline" />
+                        </div>
+                      </div>
+
+                      {/* Submit Button */}
+                      <button
+                        ref={submitRef}
+                        type="submit"
+                        className="btn-primary"
+                        onPointerDown={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          const id = Date.now() + Math.random();
+                          setRipples((rs) => [...rs, { id, x: e.clientX - r.left, y: e.clientY - r.top }]);
+                          setTimeout(() => setRipples((rs) => rs.filter((v) => v.id !== id)), 800);
+                        }}
+                        onPointerLeave={(e) => {
+                          e.currentTarget.style.setProperty("--bx", "0px");
+                          e.currentTarget.style.setProperty("--by", "0px");
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "14px 20px",
+                          borderRadius: "12px",
+                          fontSize: "14.5px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "9px",
+                        }}
+                      >
+                        {ripples.map((r) => (
+                          <span key={r.id} className="btn-ripple" style={{ left: r.x, top: r.y }} />
+                        ))}
+                        <span style={{ position: "relative", zIndex: 1 }}>Sign In to Assistant</span>
+                        <span className="btn-arrow" style={{ display: "flex", position: "relative", zIndex: 1 }}>
+                          <Icon.arrow />
+                        </span>
+                      </button>
+                    </form>
+
+                    {/* Security Footer */}
+                    <div
                       style={{
-                        width: "100%",
-                        padding: "14px 20px",
-                        borderRadius: "12px",
-                        fontSize: "15px",
+                        marginTop: "20px",
+                        paddingTop: "15px",
+                        borderTop: "1px solid var(--border-glass)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         gap: "8px",
+                        color: "var(--text-dim)",
                       }}
                     >
-                      <span>Sign In to Assistant</span>
-                      <span style={{ fontSize: "16px" }}>&rarr;</span>
-                    </button>
-                  </form>
-
-                  {/* Security Footer */}
-                  <div
-                    style={{
-                      marginTop: "24px",
-                      paddingTop: "16px",
-                      borderTop: "1px solid var(--border-glass)",
-                      textAlign: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: "11px", color: "#64748B" }}>
-                      🔐 FastMCP Token Protected • Encrypted RSA Payload
-                    </span>
+                      <span style={{ display: "flex", color: "var(--emerald-400)" }}>
+                        <Icon.shield />
+                      </span>
+                      <span style={{ fontSize: "10.5px", letterSpacing: "0.2px", fontWeight: 500 }}>
+                        FastMCP Token Protected · Encrypted RSA Payload
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </main>
@@ -879,59 +992,29 @@ export default function Page() {
         /* ================================================================= */
         /* 2. AUTHENTICATED ORCHESTRATE CHAT VIEW                            */
         /* ================================================================= */
-        <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "relative", zIndex: 2, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
           {/* Top Navbar */}
-          <header
-            style={{
-              height: "64px",
-              padding: "0 28px",
-              background: "rgba(13, 18, 30, 0.88)",
-              backdropFilter: "blur(18px)",
-              WebkitBackdropFilter: "blur(18px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-              position: "sticky",
-              top: 0,
-              zIndex: 9999,
-            }}
-          >
+          <header className="app-header">
             {/* Left: Brand + Agent Status */}
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <div
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "10px",
-                  background: "linear-gradient(135deg, #6366F1 0%, #A855F7 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: "800",
-                  fontSize: "16px",
-                  color: "#FFFFFF",
-                  boxShadow: "0 4px 14px rgba(99, 102, 241, 0.45)",
-                }}
-              >
-                TX
+            <div className="header-brand">
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <div
+                  className="brand-mark"
+                  style={{ width: "38px", height: "38px", borderRadius: "11px" }}
+                >
+                  <span style={{ position: "relative", zIndex: 1, color: "#fff", display: "flex" }}>
+                    <Icon.bolt width="17" height="17" />
+                  </span>
+                </div>
               </div>
 
-              <div>
-                <div style={{ fontSize: "15px", fontWeight: "700", color: "#FFFFFF", letterSpacing: "-0.01em" }}>
-                  TechXchange HR Assistant
+              <div className="header-brand-text">
+                <div className="brand-title-sm">
+                  <span className="gradient-text">TechXchange HR Assistant</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "1px" }}>
-                  <span
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      backgroundColor: "#34D399",
-                      boxShadow: "0 0 8px #34D399",
-                    }}
-                  />
-                  <span style={{ fontSize: "11px", color: "#94A3B8" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                  <span className="status-dot" />
+                  <span style={{ fontSize: "10.5px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
                     watsonx Orchestrate Connected
                   </span>
                 </div>
@@ -939,94 +1022,80 @@ export default function Page() {
             </div>
 
             {/* Right: User Profile Chip & Logout */}
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div className="header-actions">
               {/* User Chip */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  padding: "6px 14px",
-                  borderRadius: "30px",
-                  background: "rgba(255, 255, 255, 0.04)",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                }}
-              >
+              <div className="user-chip">
                 {/* Avatar Initial */}
                 <div
+                  className="avatar"
                   style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "50%",
-                    background: userInfo?.is_manager
-                      ? "linear-gradient(135deg, #6366F1, #818CF8)"
-                      : "linear-gradient(135deg, #10B981, #34D399)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    color: "#FFFFFF",
+                    background: isManager
+                      ? "linear-gradient(140deg, #6366F1, #A855F7)"
+                      : "linear-gradient(140deg, #10B981, #22D3EE)",
+                    color: isManager ? "#A5B4FC" : "#6EE7B7",
+                    boxShadow: isManager
+                      ? "0 4px 14px -3px rgba(99, 102, 241, 0.65)"
+                      : "0 4px 14px -3px rgba(16, 185, 129, 0.6)",
                   }}
                 >
-                  {userInfo?.name ? userInfo.name.charAt(0) : "U"}
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <span style={{ fontSize: "12px", fontWeight: "600", color: "#F1F5F9" }}>
-                    {userInfo?.name}
+                  <span style={{ color: "#fff" }}>
+                    {userInfo?.name ? userInfo.name.charAt(0) : "U"}
                   </span>
                 </div>
 
-                {/* Role Pill */}
                 <span
+                  className="user-name"
                   style={{
-                    padding: "3px 10px",
-                    borderRadius: "12px",
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    background: userInfo?.is_manager
-                      ? "rgba(99, 102, 241, 0.22)"
-                      : "rgba(16, 185, 129, 0.18)",
-                    border: userInfo?.is_manager
-                      ? "1px solid rgba(99, 102, 241, 0.45)"
-                      : "1px solid rgba(16, 185, 129, 0.35)",
-                    color: userInfo?.is_manager ? "#C7D2FE" : "#A7F3D0",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: "var(--text-main)",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {userInfo?.is_manager ? "👑 Manager (is_manager: true)" : "👤 General (is_manager: false)"}
+                  {userInfo?.name}
+                </span>
+
+                {/* Role Pill */}
+                <span
+                  className="chip"
+                  style={{
+                    background: isManager ? "rgba(99, 102, 241, 0.2)" : "rgba(16, 185, 129, 0.16)",
+                    border: isManager
+                      ? "1px solid rgba(129, 140, 248, 0.45)"
+                      : "1px solid rgba(52, 211, 153, 0.38)",
+                    color: isManager ? "#C7D2FE" : "#A7F3D0",
+                  }}
+                >
+                  <span style={{ display: "flex" }}>
+                    {isManager ? <Icon.crown width="12" height="12" /> : <Icon.badge width="12" height="12" />}
+                  </span>
+                  <span className="mono">
+                    {isManager ? "is_manager: true" : "is_manager: false"}
+                  </span>
                 </span>
               </div>
 
               {/* Sign Out Button */}
-              <button
-                onClick={handleLogout}
-                style={{
-                  padding: "8px 16px",
-                  background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  color: "#E2E8F0",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
-                  e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.4)";
-                  e.currentTarget.style.color = "#FCA5A5";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
-                  e.currentTarget.style.color = "#E2E8F0";
-                }}
-              >
-                Sign out
+              <button onClick={handleLogout} className="btn-ghost" aria-label="Sign out" title="Sign out">
+                <Icon.logout />
+                <span className="btn-label">Sign out</span>
               </button>
             </div>
           </header>
+
+          {/* Quiet session context — the chat panel is the focus here */}
+          <div className="workspace">
+            <div className="workspace-inner">
+              <h1 className="ws-greeting">
+                Welcome back, <span className="gradient-text">{userInfo?.name}</span>
+              </h1>
+              <p className="ws-meta">
+                <span>{userInfo?.email}</span>
+                <span className="ws-dot" />
+                <span className="mono">is_manager: {isManager ? "true" : "false"}</span>
+              </p>
+            </div>
+          </div>
 
           {/* Watsonx Orchestrate Chat Root Viewport */}
           <div
