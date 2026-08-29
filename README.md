@@ -16,7 +16,27 @@ An enterprise-grade, secure, multi-agent HR assistant solution built on **watson
 
 ## 🚀 Getting Started
 
+### 0. Configure `.env` with IBM Cloud Credentials
+
+Before running any commands, update the `.env` file in the project root with your IBM Cloud credentials.
+
+**How to get the values:**
+
+1. **CRN** — Log in to [cloud.ibm.com](https://cloud.ibm.com) → click **Resource list** → find your **watsonx Orchestrate** instance → click on it → copy the **CRN** from the instance details panel.
+
+2. **INSTANCE_URL & API_KEY** — From the same instance details panel, click **Launch watsonx Orchestrate**. Once the product opens, you can copy the **Instance URL** from your browser's address bar or the instance settings. Your **API Key** can be created at [cloud.ibm.com/iam/apikeys](https://cloud.ibm.com/iam/apikeys).
+
+Update `.env`:
+```env
+CRN=<your-crn>
+INSTANCE_URL=<your-instance-url>
+API_KEY=<your-ibm-cloud-api-key>
+```
+
+---
+
 ### 1. Environment Setup
+
 
 Open terminal in the project root (`Lab-1220`):
 
