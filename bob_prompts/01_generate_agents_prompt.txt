@@ -2,6 +2,10 @@ Production Prompt — watsonx Orchestrate Native HR Agent Architecture
 
 Generate exactly three production-ready watsonx Orchestrate Native Agent YAML files using the latest supported Native Agent schema and production best practices.
 
+Documentation & MCP Requirements:
+* You MUST use the `watsonx-orchestrate-adk-docs` MCP server to look up documentation and generate the agent YAML files.
+* If you do not have access to the `watsonx-orchestrate-adk-docs` MCP server, notify the user about it immediately without generating any agent YAML files.
+
 Deliverables:
 
 1. wxo-agents-tools/agents/general_agent.yaml
@@ -30,6 +34,7 @@ hr_main_agent is the only user-facing agent.
 
 hr_main_agent:
 
+* Do NOT ask follow-up questions; immediately route user requests to the suitable sub-agent.
 * Route requests related to office locations, leave balance, or company holidays to general_agent.
 * Route requests involving employee salary or Team summary dashboard to manager_agent.
 * Do not answer these requests directly; only route them to the relevant sub-agent.
@@ -50,6 +55,9 @@ Responsibility:
 * Employee leave balance
 * Company holidays
 
+Tool Invocation Behavior:
+* Do NOT ask follow-up questions; directly invoke the available tools to fulfill user requests immediately.
+
 Allowed tools:
 
 * mcp_tools_server:get_office_locations
@@ -65,6 +73,9 @@ Responsibility:
 
 * Employee salary
 * Team summary dashboard
+
+Tool Invocation Behavior:
+* Do NOT ask follow-up questions; directly invoke the available tools to fulfill user requests immediately.
 
 Allowed tools:
 
