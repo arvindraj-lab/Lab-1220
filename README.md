@@ -16,7 +16,47 @@ An enterprise-grade, secure, multi-agent HR assistant solution built on **watson
 
 ## 🚀 Getting Started
 
-### 0. Configure `.env` with IBM Cloud Credentials
+Open Bob with (`Lab-1220`) and click on the Bob terminal:
+
+### 0. Prerequisites — Node.js
+
+The `wxo-security-toggle` CLI and the `embed_chat_webapp` (Next.js) both require **Node.js ≥ 18**.
+
+Before installing Node.js, check whether it is already installed on your system:
+
+```bash
+node --version
+```
+
+If Node.js is installed and the version is **18 or higher**, no installation is required.
+
+If Node.js is **not installed** or the installed version is **below 18**, install the latest LTS version using the appropriate command below.
+
+#### macOS
+
+```bash
+brew install node
+echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+```
+
+#### Linux (Ubuntu / Debian)
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs
+echo 'export PATH="/usr/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+After installation, verify the Node.js version:
+
+```bash
+node --version
+```
+
+It should return **v18.x.x or higher**.
+
+---
+
+### 1. Configure `.env` with IBM Cloud Credentials
 
 Before running any commands, update the `.env` file in the project root with your IBM Cloud credentials.
 
@@ -35,8 +75,7 @@ API_KEY=<your-ibm-cloud-api-key>
 
 ---
 
-### 1. Environment Setup
-
+### 2. Environment Setup
 
 Open terminal in the project root (`Lab-1220`):
 
@@ -51,7 +90,7 @@ orchestrate env activate oic_dev --api-key <IAM_API_KEY>
 
 ---
 
-### 2. Configure watsonx Orchestrate Connection
+### 3. Configure watsonx Orchestrate Connection
 
 Create and configure the connection for the MCP server:
 
@@ -71,7 +110,7 @@ orchestrate connections configure --app-id mcp_server_connection --env live --ty
 
 ---
 
-### 3. Add MCP Toolkit
+### 4. Add MCP Toolkit
 
 Register the MCP server tools with watsonx Orchestrate:
 
@@ -81,7 +120,7 @@ orchestrate toolkits add --kind mcp --name mcp_tools_server --description "MCP t
 
 ---
 
-### 4. Agent Architecture & Deployment (Bob Prompts)
+### 5. Agent Architecture & Deployment (Bob Prompts)
 
 Follow the prompt sequence in `bob_prompts/` using Bob:
 
@@ -91,7 +130,7 @@ Follow the prompt sequence in `bob_prompts/` using Bob:
 
 ---
 
-### 5. Running the Web Application
+### 6. Running the Web Application
 
 #### Embed Chat WebApp
 ```bash
@@ -107,3 +146,4 @@ cd wxo-security-toggle
 npm start
 ```
 *Access the security management dashboard at `http://localhost:3002`.*
+
