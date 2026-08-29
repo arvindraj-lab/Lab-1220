@@ -85,7 +85,7 @@ API_KEY=<your-ibm-cloud-api-key>
 Open terminal in the project root (`Lab-1220`):
 
 ```bash
-python3.11 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip3 install ibm-watsonx-orchestrate==2.15.0
 
