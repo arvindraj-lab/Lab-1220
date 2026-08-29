@@ -63,6 +63,11 @@ Before running any commands, update the `.env` file in the project root with you
 **How to get the values:**
 
 1. **CRN** — Log in to [cloud.ibm.com](https://cloud.ibm.com) → click **Resource list** → expand the **AI / Machine Learning** category → click on your **watsonx Orchestrate** → copy the **CRN** from the details panel.
+<img width="1728" height="870" alt="Screenshot 2026-08-29 at 2 11 10 PM" src="https://github.ibm.com/user-attachments/assets/daa96330-ef6f-475c-bfa7-14745ab3a202" />
+
+<img width="1728" height="864" alt="Screenshot 2026-08-29 at 2 12 10 PM" src="https://github.ibm.com/user-attachments/assets/2a1b0957-de38-4f4c-8c81-8c1aec2699d2" />
+
+<img width="1371" height="731" alt="Screenshot 2026-08-29 at 2 15 36 PM" src="https://github.ibm.com/user-attachments/assets/49626b02-1210-4dda-b3fe-a6526c3a8a0e" />
 
 2. **INSTANCE_URL & API_KEY** — From the same instance details panel, click **Launch watsonx Orchestrate**. Once the product opens, on the top right click your **profile icon** → **Settings** → **API details** to copy the **Instance URL** and **API key**.
 
