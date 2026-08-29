@@ -22,7 +22,7 @@ Before running any commands, update the `.env` file in the project root with you
 
 **How to get the values:**
 
-1. **CRN** — Log in to [cloud.ibm.com](https://cloud.ibm.com) → click **Resource list** → find your **watsonx Orchestrate** instance → click on it → copy the **CRN** from the instance details panel.
+1. **CRN** — Log in to [cloud.ibm.com](https://cloud.ibm.com) → click **Resource list** → expand the **AI / Machine Learning** category → find your **watsonx Orchestrate** instance → click the **WXO icon** to open the instance details → copy the **CRN** from the details panel.
 
 2. **INSTANCE_URL & API_KEY** — From the same instance details panel, click **Launch watsonx Orchestrate**. Once the product opens, you can copy the **Instance URL** from your browser's address bar or the instance settings. Your **API Key** can be created at [cloud.ibm.com/iam/apikeys](https://cloud.ibm.com/iam/apikeys).
 
