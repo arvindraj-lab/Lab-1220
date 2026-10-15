@@ -1,0 +1,39 @@
+# Node / JavaScript
+node_modules/
+.next/
+dist/
+build/
+out/
+.npm/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Environment variables & secrets
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*_private_key.pem
+*.key
+
+# Security keys — never push real keys
+embed_chat_webapp/wxo_security_keys/client_private_key.pem
+embed_chat_webapp/wxo_security_keys/client_public_key.pem
+embed_chat_webapp/wxo_security_keys/ibm_public_key.pem
+wxo-security-toggle/keys/client_public_key.pem
+wxo-security-toggle/keys/ibm_public_key.pem
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.log
+.vscode/

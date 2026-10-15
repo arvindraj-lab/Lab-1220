@@ -1,0 +1,81 @@
+Import, Deploy & Embed Prompt — watsonx Orchestrate HR Agent Suite (oic_dev)
+
+Import the RBAC plugin and three pre-built Native Agent YAML files into the watsonx Orchestrate
+SaaS environment named oic_dev, deploy the main orchestrator agent, and configure
+the embed chat web application.
+
+Environment facts:
+  - CLI binary  : venv/bin/orchestrate (or TechXchange-student/venv/bin/orchestrate)
+    (always activate the venv before running any orchestrate command)
+    Source command: source venv/bin/activate
+  - Active env  : oic_dev  (already configured; no env switch needed)
+  - Instance URL: https://api.ca-tor.watson-orchestrate.cloud.ibm.com/...
+
+Tools & Agent YAML files:
+  - Tool/Plugin : wxo-agents-tools/tools/rbac_plugin.py  — Python RBAC pre-invoke tool
+  - Agent 1     : wxo-agents-tools/agents/general_agent.yaml   — sub-agent (tools only)
+  - Agent 2     : wxo-agents-tools/agents/manager_agent.yaml   — sub-agent (tools + rbac_plugin)
+  - Agent 3     : wxo-agents-tools/agents/hr_main_agent.yaml   — orchestrator agent (collaborators: general_agent, manager_agent)
+
+MANDATORY import order — Plugin first, then sub-agents, and finally the orchestrator:
+
+  Step 1: source venv/bin/activate && \
+          orchestrate tools import -f wxo-agents-tools/tools/rbac_plugin.py -k python
+
+  Step 2: source venv/bin/activate && \
+          orchestrate agents import -f wxo-agents-tools/agents/general_agent.yaml
+
+  Step 3: source venv/bin/activate && \
+          orchestrate agents import -f wxo-agents-tools/agents/manager_agent.yaml
+
+  Step 4: source venv/bin/activate && \
+          orchestrate agents import -f wxo-agents-tools/agents/hr_main_agent.yaml
+
+Why this order matters:
+  1. manager_agent references rbac_plugin as a pre-invocation plugin. If the tool is not
+     registered first, the manager_agent import will fail.
+  2. hr_main_agent declares general_agent and manager_agent as collaborators. If the
+     sub-agents do not exist first, the orchestrator import will fail to resolve references.
+
+Post-import verification:
+  Run the following command and confirm all three agents appear in the table:
+
+  source venv/bin/activate && \
+  orchestrate agents list
+
+  Expected agents in the output:
+    - general_agent   (tools: mcp_tools_server:get_office_locations, get_leave_balance, get_holidays)
+    - manager_agent   (tools: mcp_tools_server:get_employee_salary, get_team_summary_dashboard; plugins: rbac_plugin)
+    - hr_main_agent   (collaborators: general_agent, manager_agent)
+
+Agent Deployment:
+  Deploy the main orchestrator agent to make it live:
+
+  source venv/bin/activate && \
+  orchestrate agents deploy -n hr_main_agent
+
+Webchat Embed & WebApp Configuration:
+  1. Generate the webchat embed snippet for hr_main_agent:
+
+     source venv/bin/activate && \
+     orchestrate channels webchat embed -a hr_main_agent
+
+     Note: If the command prompts for a CRN, use the CRN value already configured in.env (CRN).
+      Do not ask the user to provide a CRN if one is already available there.
+
+  2. Update embed_chat_webapp/.env with the values extracted from the webchat embed output:
+
+     NEXT_PUBLIC_ORCHESTRATE_ORCHESTRATIONID="<orchestrationID_from_embed_output>"
+     NEXT_PUBLIC_ORCHESTRATE_HOSTURL="<hostURL_from_embed_output>"
+     NEXT_PUBLIC_ORCHESTRATE_CRN="<crn_from_embed_output>"
+     NEXT_PUBLIC_ORCHESTRATE_AGENT_ID="<agentID_from_embed_output>"
+     NEXT_PUBLIC_ORCHESTRATE_AGENT_ENVIRONMENT_ID="<agentEnvironmentID_from_embed_output>"
+
+Notes:
+  - Do NOT import external agents or assistant agents for this suite.
+  - Do NOT alter the YAML files before importing unless explicitly asked.
+  - Do NOT switch the active environment; oic_dev is correct.
+  - If any import step fails, report the exact error before proceeding to the next step.
+  - If the agents already exist and need to be re-imported, use:
+    orchestrate agents delete -n <agent_name> -k native
+    then re-run the import step for that agent.
